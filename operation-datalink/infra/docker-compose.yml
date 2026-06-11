@@ -1,0 +1,126 @@
+# Opération Datalink — infrastructure du TP CTF réseau
+#
+# Deux serveurs (srv interne + darkdrop passerelle), trois postes "acteurs"
+# qui rejouent le scénario, et deux sondes tcpdump partageant la pile réseau
+# des serveurs pour produire des captures propres (suivi de flux fonctionnel).
+#
+# Usage : voir ../Makefile (make capture) et ../run-capture.sh
+
+name: datalink
+
+networks:
+  lan:
+    name: datalink_lan
+    ipam:
+      config:
+        - subnet: 10.13.37.0/24
+          gateway: 10.13.37.1
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Serveur interne de NordExport : chat HTTP, SMTP, telnet
+  # ---------------------------------------------------------------------------
+  srv:
+    build: ./images/srv
+    image: datalink-srv
+    container_name: datalink-srv
+    hostname: srv-nordexport
+    networks:
+      lan:
+        ipv4_address: 10.13.37.50
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import socket;socket.create_connection(('127.0.0.1',80),3)"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  # ---------------------------------------------------------------------------
+  # Serveur externe "darkdrop" (réception des données volées) : FTP + DNS
+  # ---------------------------------------------------------------------------
+  darkdrop:
+    build: ./images/darkdrop
+    image: datalink-darkdrop
+    container_name: datalink-darkdrop
+    hostname: darkdrop-exchange
+    networks:
+      lan:
+        ipv4_address: 10.13.37.200
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import socket;socket.create_connection(('127.0.0.1',21),3)"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  # ---------------------------------------------------------------------------
+  # Sondes de capture (partagent la pile réseau du serveur cible)
+  # ---------------------------------------------------------------------------
+  cap-srv:
+    build: ./images/capture
+    image: datalink-capture
+    container_name: datalink-cap-srv
+    network_mode: "service:srv"
+    depends_on:
+      srv:
+        condition: service_healthy
+    volumes:
+      - ./capture:/caps
+    command: ["-i", "eth0", "-s", "0", "-U", "-w", "/caps/scelle-01_serveur-interne.pcap"]
+
+  cap-darkdrop:
+    build: ./images/capture
+    image: datalink-capture
+    container_name: datalink-cap-darkdrop
+    network_mode: "service:darkdrop"
+    depends_on:
+      darkdrop:
+        condition: service_healthy
+    volumes:
+      - ./capture:/caps
+    command: ["-i", "eth0", "-s", "0", "-U", "-w", "/caps/scelle-02_passerelle.pcap"]
+
+  # ---------------------------------------------------------------------------
+  # Acteurs : postes des suspects, rejouent le scénario puis s'arrêtent
+  # ---------------------------------------------------------------------------
+  poste-sofia:
+    build: ./images/acteurs
+    image: datalink-acteurs
+    container_name: datalink-poste-sofia
+    hostname: pc-sofia
+    networks:
+      lan:
+        ipv4_address: 10.13.37.20
+    depends_on:
+      srv:
+        condition: service_healthy
+      darkdrop:
+        condition: service_healthy
+    command: ["python3", "/opt/scenario/sofia.py"]
+
+  poste-marc:
+    build: ./images/acteurs
+    image: datalink-acteurs
+    container_name: datalink-poste-marc
+    hostname: pc-marc
+    networks:
+      lan:
+        ipv4_address: 10.13.37.10
+    depends_on:
+      srv:
+        condition: service_healthy
+      darkdrop:
+        condition: service_healthy
+    command: ["python3", "/opt/scenario/marc.py"]
+
+  poste-intrus:
+    build: ./images/acteurs
+    image: datalink-acteurs
+    container_name: datalink-poste-intrus
+    hostname: kali-op
+    networks:
+      lan:
+        ipv4_address: 10.13.37.66
+    depends_on:
+      srv:
+        condition: service_healthy
+    command: ["python3", "/opt/scenario/intrus.py"]

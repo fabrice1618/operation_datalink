@@ -1,0 +1,18 @@
+# Opération Datalink — flags (CONFIDENTIEL enseignant)
+
+P1  Coordination (HTTP)        DATALINK{RDV_QUAI17_14MAI_0300}
+P2  Exfiltration base (FTP)    DATALINK{4213_CLIENTS_RGPD_EXFILTRES}
+P3  Menaces (SMTP/base64)      DATALINK{RANCON_50000E_BTC}
+P4  Intrusion (scan + telnet)  DATALINK{STAD_ROOT_NORDEXPORT}
+P5  Canal caché (DNS TXT)      DATALINK{TUNNEL_DNS_C2_ACTIF}
+
+Phase 2  Persistance (web live) DATALINK{SEQUESTRE_EXFIL_TOUJOURS_ACTIVE}
+
+# Éléments annexes utiles à la correction
+- Intrus            : 10.13.37.66
+- Sofia (gérante)   : 10.13.37.20
+- Marc (comptable)  : 10.13.37.10
+- Serveur interne   : 10.13.37.50 (srv-nordexport)
+- Serveur externe   : 10.13.37.200 (darkdrop-exchange)
+- Telnet admin      : admin / Adm1n-NordExport!
+- FTP darkdrop      : depot / Pr1nt3mps2026!
