@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Tableau de bord — Opération Datalink{% endblock %}
+{% block content %}
+<h2 class="mb-1 text-warning">&#128202; Tableau de bord enseignant</h2>
+<p class="text-secondary mb-4">{{ groups | length }} groupe(s) enregistré(s)</p>
+
+{% if groups %}
+<div class="card mb-4">
+  <div class="card-header fw-semibold">Progression par groupe</div>
+  <div class="table-responsive">
+    <table class="table table-dark table-bordered mb-0 text-center">
+      <thead>
+        <tr>
+          <th class="text-start">Groupe</th>
+          {% for phase, label in phases.items() %}
+          <th title="{{ label }}">{{ phase }}</th>
+          {% endfor %}
+          <th>Score</th>
+          <th>PV</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for g in groups %}
+        {% set gfound = found_by_group.get(g.id, []) %}
+        {% set gpvs = pvs_by_group.get(g.id, []) %}
+        <tr>
+          <td class="text-start">
+            <strong>{{ g.name }}</strong>
+            <div class="text-secondary" style="font-size:.7rem">{{ g.created_at }}</div>
+          </td>
+          {% for phase in phases %}
+          <td>
+            {% if phase in gfound %}
+            <span class="text-success fw-bold">&#10003;</span>
+            {% else %}
+            <span class="text-secondary">&#8212;</span>
+            {% endif %}
+          </td>
+          {% endfor %}
+          <td>
+            <span class="badge {% if gfound | length == phases | length %}bg-success{% elif gfound %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+              {{ gfound | length }}/{{ phases | length }}
+            </span>
+          </td>
+          <td>
+            {% if gpvs %}
+            <span class="badge bg-info text-dark" title="{{ gpvs | map(attribute='filename') | join(', ') }}">
+              {{ gpvs | length }} fichier(s)
+            </span>
+            {% else %}
+            <span class="text-secondary">&#8212;</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if pvs_by_group %}
+<div class="card">
+  <div class="card-header fw-semibold">Procès-verbaux déposés</div>
+  <div class="card-body">
+    {% for g in groups %}
+    {% set gpvs = pvs_by_group.get(g.id, []) %}
+    {% if gpvs %}
+    <div class="mb-3">
+      <div class="fw-semibold text-light">{{ g.name }}</div>
+      <ul class="list-unstyled mb-0 ms-3">
+        {% for p in gpvs %}
+        <li class="text-secondary small font-monospace">
+          &#128196; {{ p.filename }}
+          <span class="ms-2" style="font-size:.7rem">{{ p.submitted_at }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% else %}
+<div class="text-secondary">Aucun groupe enregistré pour l'instant.</div>
+{% endif %}
+{% endblock %}

@@ -124,3 +124,29 @@ services:
       srv:
         condition: service_healthy
     command: ["python3", "/opt/scenario/intrus.py"]
+
+  # ---------------------------------------------------------------------------
+  # Portail pédagogique : énoncé, soumission de flags, dépôt PV
+  # Accès étudiants : http://<IP-hôte>:8080
+  # Tableau de bord : http://<IP-hôte>:8080/dashboard?token=prof2024
+  # ---------------------------------------------------------------------------
+  portal:
+    build: ./images/portal
+    image: datalink-portal
+    container_name: datalink-portal
+    ports:
+      - "8080:5000"
+    volumes:
+      - ../enonce:/data/enonce:ro
+      - portal-data:/data
+    environment:
+      DASHBOARD_TOKEN: "prof2024"
+      FLAG_P1: "DATALINK{RDV_QUAI17_14MAI_0300}"
+      FLAG_P2: "DATALINK{4213_CLIENTS_RGPD_EXFILTRES}"
+      FLAG_P3: "DATALINK{RANCON_50000E_BTC}"
+      FLAG_P4: "DATALINK{STAD_ROOT_NORDEXPORT}"
+      FLAG_P5: "DATALINK{TUNNEL_DNS_C2_ACTIF}"
+      FLAG_P6: "DATALINK{SEQUESTRE_EXFIL_TOUJOURS_ACTIVE}"
+
+volumes:
+  portal-data:

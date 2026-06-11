@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ label }} — Opération Datalink{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-lg-3 mb-4">
+    <div class="card">
+      <div class="card-header"><small class="text-secondary">Documents</small></div>
+      <div class="list-group list-group-flush">
+        {% for slug, lbl in files %}
+        <a href="{{ url_for('enonce_view', slug=slug) }}"
+           class="list-group-item list-group-item-action bg-transparent
+                  {% if slug == current %}active text-white{% else %}text-secondary{% endif %}"
+           style="border-color: #30363d;">
+          <small>{{ lbl }}</small>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-9">
+    <div class="card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <span class="text-info">&#128196;</span>
+        <span class="fw-semibold">{{ label }}</span>
+      </div>
+      <div class="card-body p-4" style="line-height:1.7">
+        <div class="markdown-body">{{ content | safe }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Énoncé — Opération Datalink{% endblock %}
+{% block content %}
+<h2 class="mb-4 text-info">&#128196; Documents d'enquête</h2>
+<div class="row g-3">
+  {% for slug, label in files %}
+  <div class="col-md-6">
+    <a href="{{ url_for('enonce_view', slug=slug) }}" class="text-decoration-none">
+      <div class="card h-100 card-hover" style="cursor:pointer; transition: border-color .2s;"
+           onmouseover="this.style.borderColor='#58a6ff'" onmouseout="this.style.borderColor='#30363d'">
+        <div class="card-body d-flex align-items-center gap-3">
+          <span style="font-size:2rem">&#128196;</span>
+          <div>
+            <div class="fw-semibold text-light">{{ label }}</div>
+            <div class="text-secondary small font-monospace">{{ slug }}</div>
+          </div>
+        </div>
+      </div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

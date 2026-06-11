@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Accueil — Opération Datalink{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-md-6">
+    <div class="card shadow">
+      <div class="card-header text-center py-3">
+        <h4 class="mb-0 text-info">&#128373; Portail d'investigation</h4>
+      </div>
+      <div class="card-body p-4">
+        <p class="text-secondary mb-4 text-center">
+          Bienvenue sur le portail du TP <strong>Opération Datalink</strong>.<br>
+          Saisissez votre nom de groupe pour commencer.
+        </p>
+        <form method="post" action="{{ url_for('set_group') }}">
+          <div class="mb-3">
+            <label class="form-label" for="group_name">Nom de groupe</label>
+            <input type="text" class="form-control bg-dark text-light border-secondary"
+                   id="group_name" name="group_name" placeholder="ex: Equipe-Delta"
+                   value="{{ group or '' }}" maxlength="50" required autofocus>
+            <div class="form-text text-secondary">Ce nom identifie votre équipe pour les soumissions.</div>
+          </div>
+          <div class="d-grid">
+            <button type="submit" class="btn btn-info">Accéder au portail</button>
+          </div>
+        </form>
+
+        {% if group %}
+        <hr class="border-secondary mt-4">
+        <p class="text-secondary text-center mb-2">Vous êtes connecté en tant que <strong>{{ group }}</strong>.</p>
+        <div class="d-flex gap-2 justify-content-center">
+          <a href="{{ url_for('enonce_list') }}" class="btn btn-outline-secondary btn-sm">Lire l'énoncé</a>
+          <a href="{{ url_for('flags') }}" class="btn btn-outline-secondary btn-sm">Soumettre des flags</a>
+          <a href="{{ url_for('pv') }}" class="btn btn-outline-secondary btn-sm">Déposer mon PV</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

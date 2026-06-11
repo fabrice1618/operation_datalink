@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Procès-verbal — Opération Datalink{% endblock %}
+{% block content %}
+<h2 class="mb-1 text-info">&#128196; Dépôt du procès-verbal</h2>
+<p class="text-secondary mb-4">Groupe : <strong>{{ group }}</strong></p>
+
+<div class="row">
+  <div class="col-md-7">
+    <div class="card mb-4">
+      <div class="card-header fw-semibold">Déposer un fichier</div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('api_pv') }}" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label class="form-label">Fichier (PDF, TXT, MD, ODT, DOCX)</label>
+            <input type="file" name="file" class="form-control bg-dark text-light border-secondary"
+                   accept=".pdf,.txt,.md,.odt,.docx" required>
+          </div>
+          <button type="submit" class="btn btn-info">Déposer</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-header fw-semibold">Fichiers déposés</div>
+      <div class="card-body">
+        {% if uploads %}
+        <ul class="list-unstyled mb-0">
+          {% for u in uploads %}
+          <li class="d-flex align-items-center gap-2 py-1 border-bottom border-secondary">
+            <span>&#128196;</span>
+            <div>
+              <div class="text-light small font-monospace">{{ u.filename }}</div>
+              <div class="text-secondary" style="font-size:.75rem">{{ u.submitted_at }}</div>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-secondary mb-0">Aucun fichier déposé pour l'instant.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

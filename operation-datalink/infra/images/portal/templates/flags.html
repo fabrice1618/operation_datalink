@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Flags — Opération Datalink{% endblock %}
+{% block content %}
+<h2 class="mb-1 text-info">&#127937; Soumission des flags</h2>
+<p class="text-secondary mb-4">Groupe : <strong>{{ group }}</strong></p>
+
+<div class="row g-3">
+  {% for phase, label in phases.items() %}
+  {% set is_found = phase in found %}
+  <div class="col-md-6">
+    <div class="card" id="card-{{ phase }}">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">{{ label }}</span>
+        {% if is_found %}
+        <span class="badge bg-success">&#10003; Validé</span>
+        {% else %}
+        <span class="badge bg-secondary" id="badge-{{ phase }}">En attente</span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        {% if is_found %}
+        <div class="text-success">&#10003; Flag correctement soumis.</div>
+        {% else %}
+        <div class="input-group">
+          <input type="text" class="form-control bg-dark text-light border-secondary font-monospace"
+                 id="input-{{ phase }}" placeholder="DATALINK{...}">
+          <button class="btn btn-outline-info" onclick="submitFlag('{{ phase }}')">Valider</button>
+        </div>
+        <div id="feedback-{{ phase }}" class="mt-2 small"></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="mt-4 text-secondary">
+  <strong id="counter">{{ found | length }}</strong> flag(s) validé(s) sur {{ phases | length }}.
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function submitFlag(phase) {
+  const input = document.getElementById('input-' + phase);
+  const feedback = document.getElementById('feedback-' + phase);
+  const flag = input.value.trim();
+  if (!flag) return;
+
+  feedback.innerHTML = '<span class="text-secondary">Vérification...</span>';
+
+  const res = await fetch('/api/flag', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({flag}),
+  });
+  const data = await res.json();
+
+  if (data.correct) {
+    const card = document.getElementById('card-' + phase);
+    const badge = document.getElementById('badge-' + phase);
+    badge.className = 'badge bg-success';
+    badge.textContent = '✓ Validé';
+    input.disabled = true;
+    input.parentElement.querySelector('button').disabled = true;
+    feedback.innerHTML = '<span class="text-success">&#10003; Correct ! Flag enregistré.</span>';
+    card.style.borderColor = '#238636';
+    const counter = document.getElementById('counter');
+    if (counter) counter.textContent = parseInt(counter.textContent || '0') + 1;
+  } else {
+    feedback.innerHTML = '<span class="text-danger">&#10007; Flag incorrect. Vérifiez la valeur exacte.</span>';
+    input.classList.add('border-danger');
+    setTimeout(() => input.classList.remove('border-danger'), 2000);
+  }
+}
+
+document.querySelectorAll('input[id^="input-"]').forEach(input => {
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const phase = input.id.replace('input-', '');
+      submitFlag(phase);
+    }
+  });
+});
+</script>
+{% endblock %}
