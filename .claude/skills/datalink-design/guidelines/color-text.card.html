@@ -1,0 +1,26 @@
+<!-- @dsCard group="Colors" viewport="700x160" name="State without color" subtitle="Inverse video · blink · brightness — never a 2nd hue" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; background: var(--bg-screen); font-family: var(--font-term); padding: 20px; }
+  .row { display: flex; gap: 14px; }
+  .cell { flex: 1; border: 1px solid var(--frame-line); padding: 14px; text-align: center; }
+  .big { font-size: 19px; }
+  .n { color: var(--p-faint); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; margin-top: 12px; }
+  .inv { background: var(--inverse-bg); color: var(--inverse-fg); padding: 1px 8px; text-shadow: none; }
+  .bright { color: var(--p-bright); text-shadow: var(--text-glow-strong); }
+  .blink { animation: term-blink 1.06s steps(1) infinite; }
+</style>
+</head>
+<body class="datalink">
+  <div class="row">
+    <div class="cell"><span class="big inv">VALIDÉ</span><div class="n">inverse video</div></div>
+    <div class="cell"><span class="big blink bright">ERREUR</span><div class="n">blink</div></div>
+    <div class="cell"><span class="big bright">ACTIF</span><div class="n">peak phosphore</div></div>
+    <div class="cell"><span class="big" style="color:var(--p-faint)">inactif</span><div class="n">faint</div></div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Phosphor intensity ladder" subtitle="One hue, brightness = meaning" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; background: var(--bg-screen); font-family: var(--font-term); padding: 18px; }
+  .row { display: flex; gap: 0; }
+  .step { flex: 1; padding: 14px 10px; border: 1px solid var(--p-ghost); border-right: none; }
+  .step:last-child { border-right: 1px solid var(--p-ghost); }
+  .bar { height: 30px; margin-bottom: 10px; }
+  .n { font-size: 14px; letter-spacing: .06em; text-transform: uppercase; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="step"><div class="bar" style="background:var(--p-max)"></div><div class="n" style="color:var(--p-max);text-shadow:var(--text-glow)">max</div></div>
+    <div class="step"><div class="bar" style="background:var(--p-bright)"></div><div class="n" style="color:var(--p-bright)">bright</div></div>
+    <div class="step"><div class="bar" style="background:var(--p-text)"></div><div class="n" style="color:var(--p-text)">text</div></div>
+    <div class="step"><div class="bar" style="background:var(--p-dim)"></div><div class="n" style="color:var(--p-dim)">dim</div></div>
+    <div class="step"><div class="bar" style="background:var(--p-faint)"></div><div class="n" style="color:var(--p-faint)">faint</div></div>
+    <div class="step"><div class="bar" style="background:var(--p-ghost)"></div><div class="n" style="color:var(--p-dim)">ghost</div></div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,6 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Claude Code — réglages locaux par-machine (autorisations, etc.)
+.claude/settings.local.json

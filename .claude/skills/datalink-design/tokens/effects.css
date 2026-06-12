@@ -1,0 +1,29 @@
+/* ──────────────────────────────────────────────────────────────
+   Opération Datalink — CRT effects
+   The look IS the cathode-ray tube: phosphor text-glow, scanlines,
+   a faint flicker, screen-edge vignette/curvature, a blinking block
+   cursor, and inverse-video highlights. One knob — --crt-intensity
+   (0..1) — scales the whole effect; set it lower for readability.
+   ────────────────────────────────────────────────────────────── */
+:root {
+  /* ── Master CRT knob ──────────────────────────────────────── */
+  --crt-intensity: .55; /* @kind other */
+
+  /* ── Phosphor glow ────────────────────────────────────────── */
+  --text-glow: 0 0 calc(.45rem * var(--crt-intensity)) rgba(var(--phosphor-rgb), calc(.55 * var(--crt-intensity)));
+  --text-glow-strong: 0 0 calc(.8rem * var(--crt-intensity)) rgba(var(--phosphor-rgb), calc(.8 * var(--crt-intensity)));
+  --box-glow: 0 0 calc(1.4rem * var(--crt-intensity)) rgba(var(--phosphor-rgb), calc(.16 * var(--crt-intensity)));
+
+  /* ── Scanline darkness ────────────────────────────────────── */
+  --scanline-dark: calc(.16 * var(--crt-intensity)); /* @kind other */
+  --vignette-dark: calc(.55 * var(--crt-intensity)); /* @kind other */
+
+  /* ── Motion ───────────────────────────────────────────────── */
+  --ease:      cubic-bezier(.4, 0, .2, 1);  /* @kind other */
+  --t-fast:    .1s;     /* @kind other */
+  --t-base:    .14s;    /* @kind other */
+  --blink-dur: 1.06s;   /* @kind other */
+
+  /* ── ASCII frame line color ───────────────────────────────── */
+  --frame-line: var(--p-faint);
+}

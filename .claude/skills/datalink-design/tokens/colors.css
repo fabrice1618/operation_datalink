@@ -1,0 +1,50 @@
+/* ──────────────────────────────────────────────────────────────
+   Opération Datalink — Phosphor color system  (MONOCHROME)
+   A real 80s CRT emits ONE phosphor color. We store that hue as an
+   RGB triplet and derive every "color" from its brightness (alpha).
+   There is no second hue: state (validated / error / selected) is
+   shown with INVERSE VIDEO, BLINK, intensity and [OK]/[ERR] labels —
+   never with green-vs-red. Flip the whole system to amber with
+   [data-phosphor="amber"] on <html> or any scope.
+   ────────────────────────────────────────────────────────────── */
+:root {
+  /* ── The phosphor (P1 green) as an RGB triplet for alpha math ─ */
+  --phosphor-rgb: 70, 255, 120; /* @kind other */
+  --screen-rgb:   4, 11, 6;     /* @kind other */
+
+  /* ── Screen / surface steps ───────────────────────────────── */
+  --bg-screen: rgb(var(--screen-rgb));               /* the glass   */
+  --bg-panel:  rgba(var(--phosphor-rgb), .035);      /* in a frame  */
+  --bg-inset:  rgba(0, 0, 0, .38);                   /* input wells */
+
+  /* ── Phosphor brightness ladder (peak → ghost) ────────────── */
+  --p-max:    rgb(var(--phosphor-rgb));              /* cursor, peak */
+  --p-bright: rgba(var(--phosphor-rgb), .92);        /* headings     */
+  --p-text:   rgba(var(--phosphor-rgb), .80);        /* body         */
+  --p-dim:    rgba(var(--phosphor-rgb), .56);        /* labels       */
+  --p-faint:  rgba(var(--phosphor-rgb), .34);        /* hints/border */
+  --p-ghost:  rgba(var(--phosphor-rgb), .16);        /* hairlines    */
+  --p-glow:   rgba(var(--phosphor-rgb), .07);        /* tint fills   */
+
+  /* ── Inverse video (the "highlight" of a monochrome terminal) ─ */
+  --inverse-bg: var(--p-text);
+  --inverse-fg: var(--bg-screen);
+
+  /* ── Semantic aliases ─────────────────────────────────────── */
+  --text-body:     var(--p-text);
+  --text-bright:   var(--p-bright);
+  --text-label:    var(--p-dim);
+  --text-hint:     var(--p-faint);
+  --text-disabled: var(--p-ghost);
+  --surface-page:  var(--bg-screen);
+  --surface-panel: var(--bg-panel);
+  --surface-field: var(--bg-inset);
+  --line:          var(--p-ghost);
+  --line-bright:   var(--p-faint);
+}
+
+/* ── Amber phosphor (P3) ─────────────────────────────────────── */
+[data-phosphor="amber"] {
+  --phosphor-rgb: 255, 176, 0; /* @kind other */
+  --screen-rgb:   12, 8, 2;    /* @kind other */
+}
