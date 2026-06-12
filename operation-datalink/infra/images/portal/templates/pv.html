@@ -3,50 +3,53 @@
 {% block content %}
 
 <div class="page-heading">Dépôt du procès-verbal</div>
-<div class="page-subhead">Équipe : <span class="text-cyan">{{ group }}</span></div>
+<div class="page-subhead">équipe : {{ group }}</div>
 
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;">
+<div class="pv-grid">
 
-  <div class="card">
-    <div class="card-header"><span class="label">Déposer un fichier</span></div>
-    <div class="card-body">
+  <div class="ascii-frame">
+    <div class="frame-title">Déposer un fichier</div>
+    <div class="frame-body">
       <form method="post" action="{{ url_for('api_pv') }}" enctype="multipart/form-data">
-        <div style="margin-bottom:1.25rem;">
+        <div style="margin-bottom: var(--space-5);">
           <label class="form-label">Fichier</label>
-          <input type="file" name="file" class="input-field"
-                 accept=".pdf,.txt,.md,.odt,.docx" required
-                 style="padding:.42rem .75rem;cursor:pointer;">
-          <div class="form-hint">Formats acceptés : PDF, TXT, MD, ODT, DOCX</div>
+          <div class="prompt-field">
+            <span class="prompt">A:\&gt;</span>
+            <input type="file" name="file"
+                   accept=".pdf,.txt,.md,.odt,.docx" required
+                   style="cursor: pointer;">
+          </div>
+          <div class="form-hint">// formats acceptés : PDF, TXT, MD, ODT, DOCX</div>
         </div>
-        <button type="submit" class="btn btn-primary btn-block">
-          ▲&nbsp; Déposer
-        </button>
+        <button type="submit" class="btn btn-block">▸ Déposer</button>
       </form>
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-header"><span class="label">Fichiers déposés</span></div>
-    <div class="card-body">
+  <div class="ascii-frame">
+    <div class="frame-title">Fichiers déposés</div>
+    {% if uploads %}
+    <div class="frame-right">{{ uploads | length }} FICHIER(S)</div>
+    {% endif %}
+    <div class="frame-body">
       {% if uploads %}
       <div>
         {% for u in uploads %}
         <div class="file-item">
           <span class="file-icon">▣</span>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:.8rem;color:var(--text-primary);
-                        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: var(--fs-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
               {{ u.filename }}
             </div>
-            <div style="font-size:.65rem;color:var(--text-muted);">{{ u.submitted_at }}</div>
+            <div class="text-faint" style="font-size: var(--fs-2xs);">// {{ u.submitted_at }}</div>
           </div>
           <span class="badge badge-success">OK</span>
         </div>
         {% endfor %}
       </div>
       {% else %}
-      <div style="color:var(--text-muted);font-size:.78rem;text-align:center;padding:1.5rem 0;">
-        Aucun fichier déposé pour l'instant.
+      <div class="text-faint" style="font-size: var(--fs-sm); text-align: center; padding: 1.5rem 0;">
+        // aucun PV déposé
       </div>
       {% endif %}
     </div>
@@ -55,10 +58,10 @@
 </div>
 
 <style>
-  @media (max-width: 640px) {
-    div[style*="grid-template-columns:1fr 1fr"] {
-      grid-template-columns: 1fr !important;
-    }
+  .pv-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: var(--space-6); align-items: start; margin-top: var(--space-2);
   }
+  @media (max-width: 640px) { .pv-grid { grid-template-columns: 1fr; } }
 </style>
 {% endblock %}

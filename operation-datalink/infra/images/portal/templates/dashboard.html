@@ -1,17 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Tableau de bord — Opération Datalink{% endblock %}
+{% block title %}Console superviseur — Opération Datalink{% endblock %}
 {% block content %}
 
-<div class="page-heading">
-  <span class="text-accent">Tableau de bord</span>&nbsp;enseignant
-</div>
-<div class="page-subhead">
-  {{ groups | length }} groupe(s) enregistré(s)
-</div>
+<div class="page-heading">Console superviseur</div>
+<div class="page-subhead">{{ groups | length }} groupe(s) enregistré(s)</div>
 
 {% if groups %}
 
-<!-- Compute totals -->
+<!-- Totaux -->
 {% set ns = namespace(solved=0, pv_groups=0) %}
 {% for g in groups %}
   {% set gfound = found_by_group.get(g.id, []) %}
@@ -19,44 +15,26 @@
 {% endfor %}
 {% set ns.pv_groups = pvs_by_group | length %}
 
-<!-- Stats strip -->
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:2rem;">
-  <div class="card" style="text-align:center;">
-    <div class="card-body" style="padding:1rem;">
-      <div style="font-family:var(--font-display);font-size:2rem;color:var(--accent);font-weight:700;line-height:1;">
-        {{ groups | length }}
-      </div>
-      <div style="font-size:.62rem;color:var(--text-secondary);letter-spacing:.14em;text-transform:uppercase;margin-top:.35rem;">
-        Équipes
-      </div>
-    </div>
+<!-- Bandeau de statistiques -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="value">{{ '%02d' | format(groups | length) }}</div>
+    <div class="label">Équipes</div>
   </div>
-  <div class="card" style="text-align:center;">
-    <div class="card-body" style="padding:1rem;">
-      <div style="font-family:var(--font-display);font-size:2rem;color:var(--cyan);font-weight:700;line-height:1;">
-        {{ ns.solved }}
-      </div>
-      <div style="font-size:.62rem;color:var(--text-secondary);letter-spacing:.14em;text-transform:uppercase;margin-top:.35rem;">
-        Flags validés
-      </div>
-    </div>
+  <div class="stat-card">
+    <div class="value">{{ '%02d' | format(ns.solved) }}</div>
+    <div class="label">Flags validés</div>
   </div>
-  <div class="card" style="text-align:center;">
-    <div class="card-body" style="padding:1rem;">
-      <div style="font-family:var(--font-display);font-size:2rem;color:var(--green);font-weight:700;line-height:1;">
-        {{ ns.pv_groups }}
-      </div>
-      <div style="font-size:.62rem;color:var(--text-secondary);letter-spacing:.14em;text-transform:uppercase;margin-top:.35rem;">
-        PV déposés
-      </div>
-    </div>
+  <div class="stat-card">
+    <div class="value">{{ '%02d' | format(ns.pv_groups) }}</div>
+    <div class="label">PV déposés</div>
   </div>
 </div>
 
-<!-- Progression table -->
-<div class="card" style="margin-bottom:1.25rem;">
-  <div class="card-header"><span class="label">Progression par groupe</span></div>
-  <div style="overflow-x:auto;">
+<!-- Tableau de progression -->
+<div class="ascii-frame" style="margin-bottom: var(--space-6);">
+  <div class="frame-title">Progression par groupe</div>
+  <div class="frame-body" style="padding: var(--space-4); overflow-x: auto;">
     <table class="data-table">
       <thead>
         <tr>
@@ -76,22 +54,22 @@
         {% set total  = phases | length %}
         <tr>
           <td>
-            <div style="font-weight:600;color:var(--text-primary);">{{ g.name }}</div>
-            <div style="font-size:.63rem;color:var(--text-muted);">{{ g.created_at }}</div>
+            <div class="text-bright">{{ g.name }}</div>
+            <div class="text-faint" style="font-size: var(--fs-2xs);">// {{ g.created_at }}</div>
           </td>
           {% for phase in phases %}
           <td class="tc">
             {% if phase in gfound %}
-            <span style="color:var(--green);">✓</span>
+            <span class="text-bright">✓</span>
             {% else %}
-            <span style="color:var(--text-muted);">—</span>
+            <span class="text-faint">··</span>
             {% endif %}
           </td>
           {% endfor %}
           <td class="tc">
             <span class="badge
               {% if score == total %}badge-success
-              {% elif score > 0   %}badge-warn
+              {% elif score > 0   %}badge-info
               {% else             %}badge-pending{% endif %}">
               {{ score }}/{{ total }}
             </span>
@@ -100,10 +78,10 @@
             {% if gpvs %}
             <span class="badge badge-info"
                   title="{{ gpvs | map(attribute='filename') | join(', ') }}">
-              {{ gpvs | length }}
+              [{{ gpvs | length }}]
             </span>
             {% else %}
-            <span style="color:var(--text-muted);">—</span>
+            <span class="text-faint">··</span>
             {% endif %}
           </td>
         </tr>
@@ -114,22 +92,22 @@
 </div>
 
 {% if pvs_by_group %}
-<div class="card">
-  <div class="card-header"><span class="label">Procès-verbaux déposés</span></div>
-  <div class="card-body">
+<div class="ascii-frame">
+  <div class="frame-title">Procès-verbaux déposés</div>
+  <div class="frame-body">
     {% for g in groups %}
     {% set gpvs = pvs_by_group.get(g.id, []) %}
     {% if gpvs %}
-    <div style="margin-bottom:1.1rem;">
-      <div style="font-size:.72rem;color:var(--cyan);letter-spacing:.08em;margin-bottom:.4rem;">
-        {{ g.name }}
+    <div style="margin-bottom: 1.1rem;">
+      <div class="text-bright" style="font-size: var(--fs-sm); letter-spacing: .08em; margin-bottom: .3rem; text-transform: uppercase;">
+        ▌ {{ g.name }}
       </div>
       {% for p in gpvs %}
-      <div class="file-item" style="padding-left:.75rem;">
-        <span class="file-icon" style="font-size:.82rem;">▣</span>
-        <div style="flex:1;">
-          <span style="font-size:.78rem;color:var(--text-primary);">{{ p.filename }}</span>
-          <span style="font-size:.63rem;color:var(--text-muted);margin-left:.75rem;">{{ p.submitted_at }}</span>
+      <div class="file-item" style="padding-left: 2ch;">
+        <span class="file-icon">▣</span>
+        <div style="flex: 1;">
+          <span style="font-size: var(--fs-sm);">{{ p.filename }}</span>
+          <span class="text-faint" style="font-size: var(--fs-2xs); margin-left: 1ch;">// {{ p.submitted_at }}</span>
         </div>
       </div>
       {% endfor %}
@@ -141,16 +119,18 @@
 {% endif %}
 
 {% else %}
-<div class="card">
-  <div class="card-body" style="text-align:center;padding:3rem 1.5rem;color:var(--text-muted);">
-    Aucun groupe enregistré pour l'instant.
+<div class="ascii-frame">
+  <div class="frame-body text-faint" style="text-align: center; padding: 3rem 1.5rem;">
+    // aucun groupe enregistré
   </div>
 </div>
 {% endif %}
 
 <style>
-  @media (max-width: 600px) {
-    div[style*="repeat(3,1fr)"] { grid-template-columns: 1fr !important; }
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4); margin-bottom: var(--space-8);
   }
+  @media (max-width: 600px) { .stats-grid { grid-template-columns: 1fr; } }
 </style>
 {% endblock %}
