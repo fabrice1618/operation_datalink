@@ -1,32 +1,47 @@
 {% extends "base.html" %}
 {% block title %}{{ label }} — Opération Datalink{% endblock %}
 {% block content %}
-<div class="row">
-  <div class="col-lg-3 mb-4">
-    <div class="card">
-      <div class="card-header"><small class="text-secondary">Documents</small></div>
-      <div class="list-group list-group-flush">
-        {% for slug, lbl in files %}
-        <a href="{{ url_for('enonce_view', slug=slug) }}"
-           class="list-group-item list-group-item-action bg-transparent
-                  {% if slug == current %}active text-white{% else %}text-secondary{% endif %}"
-           style="border-color: #30363d;">
-          <small>{{ lbl }}</small>
-        </a>
-        {% endfor %}
-      </div>
+
+<div style="display:grid; grid-template-columns:210px 1fr; gap:1.5rem; align-items:start;">
+
+  <!-- Sidebar -->
+  <div class="card" style="position:sticky;top:72px;">
+    <div class="card-header"><span>Dossiers</span></div>
+    <div>
+      {% for slug, lbl in files %}
+      <a href="{{ url_for('enonce_view', slug=slug) }}"
+         class="sidebar-link {% if slug == current %}active{% endif %}">
+        {{ lbl }}
+      </a>
+      {% endfor %}
     </div>
   </div>
-  <div class="col-lg-9">
-    <div class="card">
-      <div class="card-header d-flex align-items-center gap-2">
-        <span class="text-info">&#128196;</span>
-        <span class="fw-semibold">{{ label }}</span>
+
+  <!-- Document -->
+  <div class="card">
+    <div class="card-header">
+      <div class="flex-center gap-sm">
+        <span style="color:var(--accent);opacity:.7;">▣</span>
+        <span class="label">{{ label }}</span>
       </div>
-      <div class="card-body p-4" style="line-height:1.7">
-        <div class="markdown-body">{{ content | safe }}</div>
-      </div>
+      <a href="{{ url_for('enonce_list') }}" class="btn btn-secondary"
+         style="padding:.18rem .6rem;font-size:.63rem;">← Retour</a>
+    </div>
+    <div class="card-body" style="padding:1.75rem 2rem;line-height:1.8;">
+      <div class="prose">{{ content | safe }}</div>
     </div>
   </div>
+
 </div>
+
+<style>
+  @media (max-width: 768px) {
+    div[style*="grid-template-columns:210px"] {
+      grid-template-columns: 1fr !important;
+    }
+    .card[style*="position:sticky"] {
+      position: static !important;
+    }
+  }
+</style>
 {% endblock %}

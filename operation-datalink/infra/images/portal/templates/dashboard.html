@@ -1,54 +1,109 @@
 {% extends "base.html" %}
 {% block title %}Tableau de bord — Opération Datalink{% endblock %}
 {% block content %}
-<h2 class="mb-1 text-warning">&#128202; Tableau de bord enseignant</h2>
-<p class="text-secondary mb-4">{{ groups | length }} groupe(s) enregistré(s)</p>
+
+<div class="page-heading">
+  <span class="text-accent">Tableau de bord</span>&nbsp;enseignant
+</div>
+<div class="page-subhead">
+  {{ groups | length }} groupe(s) enregistré(s)
+</div>
 
 {% if groups %}
-<div class="card mb-4">
-  <div class="card-header fw-semibold">Progression par groupe</div>
-  <div class="table-responsive">
-    <table class="table table-dark table-bordered mb-0 text-center">
+
+<!-- Compute totals -->
+{% set ns = namespace(solved=0, pv_groups=0) %}
+{% for g in groups %}
+  {% set gfound = found_by_group.get(g.id, []) %}
+  {% set ns.solved = ns.solved + (gfound | length) %}
+{% endfor %}
+{% set ns.pv_groups = pvs_by_group | length %}
+
+<!-- Stats strip -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:2rem;">
+  <div class="card" style="text-align:center;">
+    <div class="card-body" style="padding:1rem;">
+      <div style="font-family:var(--font-display);font-size:2rem;color:var(--accent);font-weight:700;line-height:1;">
+        {{ groups | length }}
+      </div>
+      <div style="font-size:.62rem;color:var(--text-secondary);letter-spacing:.14em;text-transform:uppercase;margin-top:.35rem;">
+        Équipes
+      </div>
+    </div>
+  </div>
+  <div class="card" style="text-align:center;">
+    <div class="card-body" style="padding:1rem;">
+      <div style="font-family:var(--font-display);font-size:2rem;color:var(--cyan);font-weight:700;line-height:1;">
+        {{ ns.solved }}
+      </div>
+      <div style="font-size:.62rem;color:var(--text-secondary);letter-spacing:.14em;text-transform:uppercase;margin-top:.35rem;">
+        Flags validés
+      </div>
+    </div>
+  </div>
+  <div class="card" style="text-align:center;">
+    <div class="card-body" style="padding:1rem;">
+      <div style="font-family:var(--font-display);font-size:2rem;color:var(--green);font-weight:700;line-height:1;">
+        {{ ns.pv_groups }}
+      </div>
+      <div style="font-size:.62rem;color:var(--text-secondary);letter-spacing:.14em;text-transform:uppercase;margin-top:.35rem;">
+        PV déposés
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Progression table -->
+<div class="card" style="margin-bottom:1.25rem;">
+  <div class="card-header"><span class="label">Progression par groupe</span></div>
+  <div style="overflow-x:auto;">
+    <table class="data-table">
       <thead>
         <tr>
-          <th class="text-start">Groupe</th>
+          <th>Groupe</th>
           {% for phase, label in phases.items() %}
-          <th title="{{ label }}">{{ phase }}</th>
+          <th class="tc" title="{{ label }}">{{ phase }}</th>
           {% endfor %}
-          <th>Score</th>
-          <th>PV</th>
+          <th class="tc">Score</th>
+          <th class="tc">PV</th>
         </tr>
       </thead>
       <tbody>
         {% for g in groups %}
         {% set gfound = found_by_group.get(g.id, []) %}
-        {% set gpvs = pvs_by_group.get(g.id, []) %}
+        {% set gpvs   = pvs_by_group.get(g.id, []) %}
+        {% set score  = gfound | length %}
+        {% set total  = phases | length %}
         <tr>
-          <td class="text-start">
-            <strong>{{ g.name }}</strong>
-            <div class="text-secondary" style="font-size:.7rem">{{ g.created_at }}</div>
+          <td>
+            <div style="font-weight:600;color:var(--text-primary);">{{ g.name }}</div>
+            <div style="font-size:.63rem;color:var(--text-muted);">{{ g.created_at }}</div>
           </td>
           {% for phase in phases %}
-          <td>
+          <td class="tc">
             {% if phase in gfound %}
-            <span class="text-success fw-bold">&#10003;</span>
+            <span style="color:var(--green);">✓</span>
             {% else %}
-            <span class="text-secondary">&#8212;</span>
+            <span style="color:var(--text-muted);">—</span>
             {% endif %}
           </td>
           {% endfor %}
-          <td>
-            <span class="badge {% if gfound | length == phases | length %}bg-success{% elif gfound %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
-              {{ gfound | length }}/{{ phases | length }}
+          <td class="tc">
+            <span class="badge
+              {% if score == total %}badge-success
+              {% elif score > 0   %}badge-warn
+              {% else             %}badge-pending{% endif %}">
+              {{ score }}/{{ total }}
             </span>
           </td>
-          <td>
+          <td class="tc">
             {% if gpvs %}
-            <span class="badge bg-info text-dark" title="{{ gpvs | map(attribute='filename') | join(', ') }}">
-              {{ gpvs | length }} fichier(s)
+            <span class="badge badge-info"
+                  title="{{ gpvs | map(attribute='filename') | join(', ') }}">
+              {{ gpvs | length }}
             </span>
             {% else %}
-            <span class="text-secondary">&#8212;</span>
+            <span style="color:var(--text-muted);">—</span>
             {% endif %}
           </td>
         </tr>
@@ -60,21 +115,24 @@
 
 {% if pvs_by_group %}
 <div class="card">
-  <div class="card-header fw-semibold">Procès-verbaux déposés</div>
+  <div class="card-header"><span class="label">Procès-verbaux déposés</span></div>
   <div class="card-body">
     {% for g in groups %}
     {% set gpvs = pvs_by_group.get(g.id, []) %}
     {% if gpvs %}
-    <div class="mb-3">
-      <div class="fw-semibold text-light">{{ g.name }}</div>
-      <ul class="list-unstyled mb-0 ms-3">
-        {% for p in gpvs %}
-        <li class="text-secondary small font-monospace">
-          &#128196; {{ p.filename }}
-          <span class="ms-2" style="font-size:.7rem">{{ p.submitted_at }}</span>
-        </li>
-        {% endfor %}
-      </ul>
+    <div style="margin-bottom:1.1rem;">
+      <div style="font-size:.72rem;color:var(--cyan);letter-spacing:.08em;margin-bottom:.4rem;">
+        {{ g.name }}
+      </div>
+      {% for p in gpvs %}
+      <div class="file-item" style="padding-left:.75rem;">
+        <span class="file-icon" style="font-size:.82rem;">▣</span>
+        <div style="flex:1;">
+          <span style="font-size:.78rem;color:var(--text-primary);">{{ p.filename }}</span>
+          <span style="font-size:.63rem;color:var(--text-muted);margin-left:.75rem;">{{ p.submitted_at }}</span>
+        </div>
+      </div>
+      {% endfor %}
     </div>
     {% endif %}
     {% endfor %}
@@ -83,6 +141,16 @@
 {% endif %}
 
 {% else %}
-<div class="text-secondary">Aucun groupe enregistré pour l'instant.</div>
+<div class="card">
+  <div class="card-body" style="text-align:center;padding:3rem 1.5rem;color:var(--text-muted);">
+    Aucun groupe enregistré pour l'instant.
+  </div>
+</div>
 {% endif %}
+
+<style>
+  @media (max-width: 600px) {
+    div[style*="repeat(3,1fr)"] { grid-template-columns: 1fr !important; }
+  }
+</style>
 {% endblock %}

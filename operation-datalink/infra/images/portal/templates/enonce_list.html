@@ -1,23 +1,39 @@
 {% extends "base.html" %}
-{% block title %}Énoncé — Opération Datalink{% endblock %}
+{% block title %}Documents d'enquête — Opération Datalink{% endblock %}
 {% block content %}
-<h2 class="mb-4 text-info">&#128196; Documents d'enquête</h2>
-<div class="row g-3">
+
+<div class="page-heading">Documents d'enquête</div>
+<div class="page-subhead">Dossiers classifiés de l'opération</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
   {% for slug, label in files %}
-  <div class="col-md-6">
-    <a href="{{ url_for('enonce_view', slug=slug) }}" class="text-decoration-none">
-      <div class="card h-100 card-hover" style="cursor:pointer; transition: border-color .2s;"
-           onmouseover="this.style.borderColor='#58a6ff'" onmouseout="this.style.borderColor='#30363d'">
-        <div class="card-body d-flex align-items-center gap-3">
-          <span style="font-size:2rem">&#128196;</span>
-          <div>
-            <div class="fw-semibold text-light">{{ label }}</div>
-            <div class="text-secondary small font-monospace">{{ slug }}</div>
-          </div>
+  <a href="{{ url_for('enonce_view', slug=slug) }}" style="text-decoration: none;">
+    <div class="card" style="cursor:pointer; transition:border-color .2s, background .2s;"
+         onmouseover="this.style.borderColor='var(--accent-dim)';this.style.background='var(--bg-elevated)'"
+         onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--bg-surface)'">
+      <div class="card-body" style="display:flex;align-items:center;gap:1rem;padding:1rem;">
+        <div style="
+          width:42px;height:42px;flex-shrink:0;
+          border:1px solid var(--accent-dim);
+          display:flex;align-items:center;justify-content:center;
+          color:var(--accent);font-size:1.05rem;
+          clip-path:polygon(6px 0%,100% 0%,100% calc(100% - 6px),calc(100% - 6px) 100%,0% 100%,0% 6px);
+          background:var(--accent-glow);
+        ">▣</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:.82rem;color:var(--text-primary);margin-bottom:.18rem;">{{ label }}</div>
+          <div style="font-size:.65rem;color:var(--text-muted);letter-spacing:.07em;">{{ slug }}</div>
         </div>
+        <div style="color:var(--text-muted);font-size:.85rem;flex-shrink:0;">→</div>
       </div>
-    </a>
-  </div>
+    </div>
+  </a>
   {% endfor %}
 </div>
+
+<style>
+  @media (max-width: 600px) {
+    div[style*="repeat(2, 1fr)"] { grid-template-columns: 1fr !important; }
+  }
+</style>
 {% endblock %}

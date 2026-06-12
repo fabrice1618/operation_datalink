@@ -1,41 +1,78 @@
 {% extends "base.html" %}
-{% block title %}Accueil — Opération Datalink{% endblock %}
+{% block title %}Identification — Opération Datalink{% endblock %}
 {% block content %}
-<div class="row justify-content-center mt-5">
-  <div class="col-md-6">
-    <div class="card shadow">
-      <div class="card-header text-center py-3">
-        <h4 class="mb-0 text-info">&#128373; Portail d'investigation</h4>
-      </div>
-      <div class="card-body p-4">
-        <p class="text-secondary mb-4 text-center">
-          Bienvenue sur le portail du TP <strong>Opération Datalink</strong>.<br>
-          Saisissez votre nom de groupe pour commencer.
-        </p>
-        <form method="post" action="{{ url_for('set_group') }}">
-          <div class="mb-3">
-            <label class="form-label" for="group_name">Nom de groupe</label>
-            <input type="text" class="form-control bg-dark text-light border-secondary"
-                   id="group_name" name="group_name" placeholder="ex: Equipe-Delta"
-                   value="{{ group or '' }}" maxlength="50" required autofocus>
-            <div class="form-text text-secondary">Ce nom identifie votre équipe pour les soumissions.</div>
-          </div>
-          <div class="d-grid">
-            <button type="submit" class="btn btn-info">Accéder au portail</button>
-          </div>
-        </form>
 
-        {% if group %}
-        <hr class="border-secondary mt-4">
-        <p class="text-secondary text-center mb-2">Vous êtes connecté en tant que <strong>{{ group }}</strong>.</p>
-        <div class="d-flex gap-2 justify-content-center">
-          <a href="{{ url_for('enonce_list') }}" class="btn btn-outline-secondary btn-sm">Lire l'énoncé</a>
-          <a href="{{ url_for('flags') }}" class="btn btn-outline-secondary btn-sm">Soumettre des flags</a>
-          <a href="{{ url_for('pv') }}" class="btn btn-outline-secondary btn-sm">Déposer mon PV</a>
-        </div>
-        {% endif %}
-      </div>
+<div style="max-width: 440px; margin: 3.5rem auto;">
+
+  <!-- Classification header -->
+  <div style="text-align: center; margin-bottom: 2.5rem;">
+    <div style="
+      display: inline-block;
+      border: 1px solid var(--accent); padding: .22rem 1.4rem;
+      font-size: .6rem; letter-spacing: .22em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 1.25rem;
+    ">ACCÈS CLASSIFIÉ</div>
+
+    <div style="
+      font-family: var(--font-display); font-size: 1.5rem; font-weight: 900;
+      letter-spacing: .14em; color: var(--text-primary); line-height: 1.15;
+    ">
+      <span style="color: var(--accent);">OP.</span> DATALINK
     </div>
+    <div style="
+      font-size: .68rem; color: var(--text-secondary);
+      letter-spacing: .16em; text-transform: uppercase; margin-top: .5rem;
+    ">Portail d'investigation réseau</div>
   </div>
+
+  <!-- Framed entry card -->
+  <div style="position: relative; border: 1px solid var(--border); background: var(--bg-surface); padding: 2rem;">
+    <!-- Corner marks -->
+    <span style="position:absolute;top:-1px;left:-1px;width:14px;height:14px;border-top:2px solid var(--accent);border-left:2px solid var(--accent);"></span>
+    <span style="position:absolute;top:-1px;right:-1px;width:14px;height:14px;border-top:2px solid var(--accent);border-right:2px solid var(--accent);"></span>
+    <span style="position:absolute;bottom:-1px;left:-1px;width:14px;height:14px;border-bottom:2px solid var(--accent);border-left:2px solid var(--accent);"></span>
+    <span style="position:absolute;bottom:-1px;right:-1px;width:14px;height:14px;border-bottom:2px solid var(--accent);border-right:2px solid var(--accent);"></span>
+
+    <p style="font-size:.72rem; color:var(--text-secondary); text-align:center; margin-bottom:1.5rem;">
+      Identifiez votre équipe pour accéder au portail.
+    </p>
+
+    <form method="post" action="{{ url_for('set_group') }}">
+      <div style="margin-bottom: 1.25rem;">
+        <label class="form-label" for="group_name">Identifiant d'équipe</label>
+        <input type="text" class="input-field" id="group_name" name="group_name"
+               placeholder="ex: Equipe-Delta"
+               value="{{ group or '' }}" maxlength="50" required autofocus autocomplete="off">
+        <div class="form-hint">Ce nom identifie votre équipe pour les soumissions.</div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">
+        ▶&nbsp; Accéder au portail
+      </button>
+    </form>
+
+    {% if group %}
+    <div class="sep"></div>
+    <p style="text-align:center; font-size:.73rem; color:var(--text-secondary); margin-bottom:1rem;">
+      Connecté en tant que <span style="color:var(--cyan);">{{ group }}</span>
+    </p>
+    <div style="display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap;">
+      <a href="{{ url_for('enonce_list') }}" class="btn btn-secondary">Énoncé</a>
+      <a href="{{ url_for('flags') }}"       class="btn btn-secondary">Flags</a>
+      <a href="{{ url_for('pv') }}"          class="btn btn-secondary">PV</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Status bar -->
+  <div style="
+    display:flex; justify-content:space-between; padding:.45rem 0;
+    font-size:.62rem; color:var(--text-muted); letter-spacing:.07em;
+    border-bottom:1px solid var(--border); margin-top:0;
+  ">
+    <span>SYS_STATUS: ONLINE</span>
+    <span>PROTO: DATALINK/2.0</span>
+  </div>
+
 </div>
+
 {% endblock %}

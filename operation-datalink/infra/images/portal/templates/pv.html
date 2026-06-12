@@ -1,47 +1,64 @@
 {% extends "base.html" %}
 {% block title %}Procès-verbal — Opération Datalink{% endblock %}
 {% block content %}
-<h2 class="mb-1 text-info">&#128196; Dépôt du procès-verbal</h2>
-<p class="text-secondary mb-4">Groupe : <strong>{{ group }}</strong></p>
 
-<div class="row">
-  <div class="col-md-7">
-    <div class="card mb-4">
-      <div class="card-header fw-semibold">Déposer un fichier</div>
-      <div class="card-body">
-        <form method="post" action="{{ url_for('api_pv') }}" enctype="multipart/form-data">
-          <div class="mb-3">
-            <label class="form-label">Fichier (PDF, TXT, MD, ODT, DOCX)</label>
-            <input type="file" name="file" class="form-control bg-dark text-light border-secondary"
-                   accept=".pdf,.txt,.md,.odt,.docx" required>
-          </div>
-          <button type="submit" class="btn btn-info">Déposer</button>
-        </form>
-      </div>
+<div class="page-heading">Dépôt du procès-verbal</div>
+<div class="page-subhead">Équipe : <span class="text-cyan">{{ group }}</span></div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;">
+
+  <div class="card">
+    <div class="card-header"><span class="label">Déposer un fichier</span></div>
+    <div class="card-body">
+      <form method="post" action="{{ url_for('api_pv') }}" enctype="multipart/form-data">
+        <div style="margin-bottom:1.25rem;">
+          <label class="form-label">Fichier</label>
+          <input type="file" name="file" class="input-field"
+                 accept=".pdf,.txt,.md,.odt,.docx" required
+                 style="padding:.42rem .75rem;cursor:pointer;">
+          <div class="form-hint">Formats acceptés : PDF, TXT, MD, ODT, DOCX</div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">
+          ▲&nbsp; Déposer
+        </button>
+      </form>
     </div>
   </div>
 
-  <div class="col-md-5">
-    <div class="card">
-      <div class="card-header fw-semibold">Fichiers déposés</div>
-      <div class="card-body">
-        {% if uploads %}
-        <ul class="list-unstyled mb-0">
-          {% for u in uploads %}
-          <li class="d-flex align-items-center gap-2 py-1 border-bottom border-secondary">
-            <span>&#128196;</span>
-            <div>
-              <div class="text-light small font-monospace">{{ u.filename }}</div>
-              <div class="text-secondary" style="font-size:.75rem">{{ u.submitted_at }}</div>
+  <div class="card">
+    <div class="card-header"><span class="label">Fichiers déposés</span></div>
+    <div class="card-body">
+      {% if uploads %}
+      <div>
+        {% for u in uploads %}
+        <div class="file-item">
+          <span class="file-icon">▣</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:.8rem;color:var(--text-primary);
+                        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              {{ u.filename }}
             </div>
-          </li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <p class="text-secondary mb-0">Aucun fichier déposé pour l'instant.</p>
-        {% endif %}
+            <div style="font-size:.65rem;color:var(--text-muted);">{{ u.submitted_at }}</div>
+          </div>
+          <span class="badge badge-success">OK</span>
+        </div>
+        {% endfor %}
       </div>
+      {% else %}
+      <div style="color:var(--text-muted);font-size:.78rem;text-align:center;padding:1.5rem 0;">
+        Aucun fichier déposé pour l'instant.
+      </div>
+      {% endif %}
     </div>
   </div>
+
 </div>
+
+<style>
+  @media (max-width: 640px) {
+    div[style*="grid-template-columns:1fr 1fr"] {
+      grid-template-columns: 1fr !important;
+    }
+  }
+</style>
 {% endblock %}

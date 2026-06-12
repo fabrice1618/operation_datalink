@@ -1,85 +1,172 @@
 {% extends "base.html" %}
 {% block title %}Flags — Opération Datalink{% endblock %}
 {% block content %}
-<h2 class="mb-1 text-info">&#127937; Soumission des flags</h2>
-<p class="text-secondary mb-4">Groupe : <strong>{{ group }}</strong></p>
 
-<div class="row g-3">
+<div class="page-heading">Soumission des flags</div>
+<div class="page-subhead">
+  Équipe : <span class="text-cyan">{{ group }}</span>
+  &nbsp;·&nbsp;
+  <span id="counter"><strong>{{ found | length }}</strong></span> / {{ phases | length }} validé(s)
+</div>
+
+<!-- Progress bar -->
+<div style="
+  margin-bottom: 2rem; height: 2px;
+  background: var(--bg-elevated); position: relative; overflow: hidden;
+">
+  <div id="progress-bar" style="
+    position: absolute; top: 0; left: 0; height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--cyan));
+    transition: width .6s cubic-bezier(.4,0,.2,1);
+    width: {{ (found | length / (phases | length) * 100) | round }}%;
+    box-shadow: 0 0 10px var(--accent-dim);
+  "></div>
+</div>
+
+<style>
+  .flags-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+  @media (max-width: 640px) { .flags-grid { grid-template-columns: 1fr; } }
+</style>
+<div class="flags-grid">
   {% for phase, label in phases.items() %}
   {% set is_found = phase in found %}
-  <div class="col-md-6">
-    <div class="card" id="card-{{ phase }}">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <span class="fw-semibold">{{ label }}</span>
-        {% if is_found %}
-        <span class="badge bg-success">&#10003; Validé</span>
-        {% else %}
-        <span class="badge bg-secondary" id="badge-{{ phase }}">En attente</span>
-        {% endif %}
+  <div class="card" id="card-{{ phase }}"
+       style="{% if is_found %}border-color: rgba(16,185,129,.3);{% endif %}">
+    {% if is_found %}
+    <div style="position:absolute;top:0;left:0;right:0;height:1px;
+                background:linear-gradient(90deg,transparent,var(--green),transparent);"></div>
+    {% endif %}
+
+    <div class="card-header">
+      <div class="flex-center gap-sm">
+        <span style="font-family:var(--font-display);font-size:.58rem;color:var(--accent);opacity:.65;">{{ phase }}</span>
+        <span class="label">{{ label }}</span>
       </div>
-      <div class="card-body">
-        {% if is_found %}
-        <div class="text-success">&#10003; Flag correctement soumis.</div>
-        {% else %}
-        <div class="input-group">
-          <input type="text" class="form-control bg-dark text-light border-secondary font-monospace"
-                 id="input-{{ phase }}" placeholder="DATALINK{...}">
-          <button class="btn btn-outline-info" onclick="submitFlag('{{ phase }}')">Valider</button>
-        </div>
-        <div id="feedback-{{ phase }}" class="mt-2 small"></div>
-        {% endif %}
+      {% if is_found %}
+      <span class="badge badge-success" id="badge-{{ phase }}">✓ Validé</span>
+      {% else %}
+      <span class="badge badge-pending" id="badge-{{ phase }}">En attente</span>
+      {% endif %}
+    </div>
+
+    <div class="card-body" id="body-{{ phase }}">
+      {% if is_found %}
+      <div style="display:flex;align-items:center;gap:.75rem;color:var(--green);font-size:.8rem;">
+        <span style="font-size:1.1rem;opacity:.7;">✓</span>
+        <span>Flag correctement soumis.</span>
       </div>
+      {% else %}
+      <div style="display:flex;gap:0;">
+        <input type="text" class="input-field" id="input-{{ phase }}"
+               placeholder="DATALINK{...}"
+               style="flex:1;border-right:none;"
+               autocomplete="off" spellcheck="false">
+        <button class="btn btn-primary" onclick="submitFlag('{{ phase }}')"
+                style="flex-shrink:0;border-radius:0;">▶</button>
+      </div>
+      <div id="feedback-{{ phase }}" style="min-height:1.3rem;font-size:.7rem;margin-top:.35rem;"></div>
+      {% endif %}
     </div>
   </div>
   {% endfor %}
 </div>
 
-<div class="mt-4 text-secondary">
-  <strong id="counter">{{ found | length }}</strong> flag(s) validé(s) sur {{ phases | length }}.
-</div>
 {% endblock %}
 
 {% block scripts %}
+<style>
+  @keyframes grantedReveal {
+    from { opacity:0; transform:translateY(-3px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  @keyframes cardGlow {
+    0%   { box-shadow: none; }
+    30%  { box-shadow: 0 0 28px rgba(16,185,129,.35); }
+    100% { box-shadow: 0 0 8px rgba(16,185,129,.1); }
+  }
+</style>
 <script>
+const totalPhases = {{ phases | length }};
+
 async function submitFlag(phase) {
-  const input = document.getElementById('input-' + phase);
+  const input    = document.getElementById('input-'    + phase);
   const feedback = document.getElementById('feedback-' + phase);
   const flag = input.value.trim();
   if (!flag) return;
 
-  feedback.innerHTML = '<span class="text-secondary">Vérification...</span>';
+  input.disabled = true;
+  feedback.innerHTML = '<span style="color:var(--text-muted)">// vérification en cours...</span>';
 
-  const res = await fetch('/api/flag', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({flag}),
-  });
-  const data = await res.json();
+  try {
+    const res  = await fetch('/api/flag', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ flag }),
+    });
+    const data = await res.json();
 
-  if (data.correct) {
-    const card = document.getElementById('card-' + phase);
-    const badge = document.getElementById('badge-' + phase);
-    badge.className = 'badge bg-success';
-    badge.textContent = '✓ Validé';
-    input.disabled = true;
-    input.parentElement.querySelector('button').disabled = true;
-    feedback.innerHTML = '<span class="text-success">&#10003; Correct ! Flag enregistré.</span>';
-    card.style.borderColor = '#238636';
-    const counter = document.getElementById('counter');
-    if (counter) counter.textContent = parseInt(counter.textContent || '0') + 1;
-  } else {
-    feedback.innerHTML = '<span class="text-danger">&#10007; Flag incorrect. Vérifiez la valeur exacte.</span>';
-    input.classList.add('border-danger');
-    setTimeout(() => input.classList.remove('border-danger'), 2000);
+    if (data.correct) {
+      const card  = document.getElementById('card-'    + phase);
+      const badge = document.getElementById('badge-'   + phase);
+      const body  = document.getElementById('body-'    + phase);
+
+      badge.className   = 'badge badge-success';
+      badge.textContent = '✓ Validé';
+
+      // Typewriter then reveal
+      const msg = '// ACCESS GRANTED — ' + data.label;
+      feedback.innerHTML = '<span style="color:var(--green)"></span>';
+      const span = feedback.querySelector('span');
+      let i = 0;
+      const t = setInterval(() => {
+        span.textContent = msg.slice(0, ++i);
+        if (i >= msg.length) {
+          clearInterval(t);
+          setTimeout(() => {
+            body.innerHTML = `
+              <div style="display:flex;align-items:center;gap:.75rem;color:var(--green);
+                          font-size:.8rem;animation:grantedReveal .3s ease;">
+                <span style="font-size:1.1rem;opacity:.7;">✓</span>
+                <span>Flag correctement soumis.</span>
+              </div>`;
+          }, 550);
+        }
+      }, 28);
+
+      card.style.animation = 'cardGlow 1.6s ease forwards';
+      card.style.borderColor = 'rgba(16,185,129,.3)';
+
+      const topLine = document.createElement('div');
+      topLine.style.cssText = 'position:absolute;top:0;left:0;right:0;height:1px;' +
+        'background:linear-gradient(90deg,transparent,var(--green),transparent);';
+      card.prepend(topLine);
+
+      // Update counter & bar
+      const counter = document.getElementById('counter');
+      const newCount = parseInt(counter.querySelector('strong').textContent || '0') + 1;
+      counter.innerHTML = '<strong>' + newCount + '</strong>';
+      document.getElementById('progress-bar').style.width =
+        Math.round(newCount / totalPhases * 100) + '%';
+
+    } else {
+      input.disabled = false;
+      input.classList.add('error');
+      setTimeout(() => input.classList.remove('error'), 400);
+      feedback.innerHTML = '<span style="color:var(--red)">// ACCÈS REFUSÉ — flag incorrect</span>';
+      setTimeout(() => {
+        if (feedback.textContent.includes('REFUSÉ'))
+          feedback.innerHTML = '';
+      }, 3000);
+    }
+  } catch(e) {
+    input.disabled = false;
+    feedback.innerHTML = '<span style="color:var(--red)">// erreur réseau</span>';
   }
 }
 
-document.querySelectorAll('input[id^="input-"]').forEach(input => {
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-      const phase = input.id.replace('input-', '');
-      submitFlag(phase);
-    }
+document.querySelectorAll('input[id^="input-"]').forEach(inp => {
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') submitFlag(inp.id.replace('input-', ''));
   });
 });
 </script>
