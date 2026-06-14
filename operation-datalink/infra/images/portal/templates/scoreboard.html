@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Classement — Opération Datalink{% endblock %}
+{% block content %}
+
+<div class="page-heading">Classement des équipes</div>
+<div class="page-subhead">temps réel — votre équipe : {{ group }}</div>
+
+<div class="ascii-frame">
+  <div class="frame-title">Tableau des scores</div>
+  <div class="frame-right" id="live-tag"><span class="term-blink">●</span> EN DIRECT</div>
+  <div class="frame-body" style="padding: var(--space-4); overflow-x: auto;">
+    <table class="data-table" id="board">
+      <thead>
+        <tr>
+          <th class="tc" style="width: 4ch;">#</th>
+          <th>Équipe</th>
+          {% for p in phases %}
+          <th class="tc" title="{{ labels[p] }}">{{ p }}</th>
+          {% endfor %}
+          <th class="tc">Score</th>
+          <th class="tc">Dernière preuve</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in board %}
+        {% set me = row.name == group %}
+        <tr class="{% if me %}row-me{% endif %}" data-team="{{ row.name }}">
+          <td class="tc text-bright">{{ row.rank }}</td>
+          <td>
+            <span class="{% if me %}text-bright{% endif %}">{{ row.name }}</span>
+            {% if me %}<span class="text-faint" style="font-size: var(--fs-2xs);"> ◂ vous</span>{% endif %}
+          </td>
+          {% for p in phases %}
+          {% set fb = first_blood.get(p) == row.id %}
+          <td class="tc">
+            {% if p in row.solves %}
+              {% if fb %}<span class="fb" title="1er sang — 1re équipe sur {{ p }}">⚑</span>
+              {% else %}<span class="text-bright">✓</span>{% endif %}
+            {% else %}
+              <span class="text-faint">··</span>
+            {% endif %}
+          </td>
+          {% endfor %}
+          <td class="tc">
+            <span class="badge
+              {% if row.score == phases|length %}badge-success
+              {% elif row.score > 0 %}badge-info
+              {% else %}badge-pending{% endif %}">{{ row.score }}/{{ phases|length }}</span>
+          </td>
+          <td class="tc text-dim" style="font-size: var(--fs-2xs);">
+            {{ row.last[11:19] if row.last else '—' }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<p class="text-faint" style="font-size: var(--fs-xs); margin-top: var(--space-4); letter-spacing: .04em;">
+  <span class="fb">⚑</span> = <span class="text-dim">1er sang</span> — première équipe à verser la preuve. &nbsp;
+  Le classement départage à score égal selon l'horodatage de la dernière preuve versée.
+</p>
+
+<div class="step-footer">
+  <a href="{{ url_for('preuves') }}" class="btn btn-secondary">◂ Saisie des preuves</a>
+  <span class="spacer"></span>
+</div>
+
+<style>
+  .row-me td { background: var(--p-glow); }
+  .fb {
+    color: var(--p-max); text-shadow: var(--text-glow-strong);
+    font-size: var(--fs-base); line-height: 1;
+  }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const PHASES = {{ phases | tojson }};
+
+function cell(c) {
+  if (!c.solved) return '<span class="text-faint">··</span>';
+  if (c.first_blood) return '<span class="fb" title="1er sang">⚑</span>';
+  return '<span class="text-bright">✓</span>';
+}
+
+function scoreBadge(score, total) {
+  const cls = score === total ? 'badge-success' : score > 0 ? 'badge-info' : 'badge-pending';
+  return '<span class="badge ' + cls + '">' + score + '/' + total + '</span>';
+}
+
+function render(data) {
+  const total = data.phases.length;
+  const rows = data.board.map(row => {
+    const me = row.name === data.me;
+    const cells = data.phases.map(p => '<td class="tc">' + cell(row.cells[p]) + '</td>').join('');
+    const last = row.last ? row.last.slice(11, 19) : '—';
+    return '<tr class="' + (me ? 'row-me' : '') + '" data-team="' + row.name + '">' +
+      '<td class="tc text-bright">' + row.rank + '</td>' +
+      '<td><span class="' + (me ? 'text-bright' : '') + '">' + row.name + '</span>' +
+        (me ? '<span class="text-faint" style="font-size: var(--fs-2xs);"> ◂ vous</span>' : '') + '</td>' +
+      cells +
+      '<td class="tc">' + scoreBadge(row.score, total) + '</td>' +
+      '<td class="tc text-dim" style="font-size: var(--fs-2xs);">' + last + '</td>' +
+      '</tr>';
+  }).join('');
+  document.querySelector('#board tbody').innerHTML = rows;
+}
+
+async function refresh() {
+  try {
+    const res = await fetch('/api/scoreboard', { headers: { 'Accept': 'application/json' } });
+    if (!res.ok) return;
+    render(await res.json());
+  } catch (e) { /* hors-ligne : on garde le dernier rendu */ }
+}
+
+setInterval(refresh, 12000);
+</script>
+{% endblock %}

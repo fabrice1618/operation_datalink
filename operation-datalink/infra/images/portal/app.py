@@ -1,4 +1,5 @@
 import os
+import hashlib
 import sqlite3
 import pathlib
 import markdown
@@ -34,15 +35,27 @@ ALLOWED_EXTENSIONS = {"pdf", "txt", "md", "odt", "docx"}
 DASHBOARD_TOKEN = os.environ.get("DASHBOARD_TOKEN", "prof2024")
 ACCESS_CODE = os.environ.get("ACCESS_CODE", "DATALINK-2026")
 
-FLAGS = {
-    "P0": os.environ.get("FLAG_P0", ""),
-    "P1": os.environ.get("FLAG_P1", ""),
-    "P2": os.environ.get("FLAG_P2", ""),
-    "P3": os.environ.get("FLAG_P3", ""),
-    "P4": os.environ.get("FLAG_P4", ""),
-    "P5": os.environ.get("FLAG_P5", ""),
-    "P6": os.environ.get("FLAG_P6", ""),
-}
+def sha256_hex(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _load_flag_hash(phase: str) -> str:
+    """SHA-256 attendu pour une preuve.
+
+    Le portail ne connaît jamais les flags en clair : seule leur empreinte
+    SHA-256 est embarquée (cf. evolution1.md, P1) — aucune fuite de source même
+    si l'on inspecte l'environnement du conteneur. On lit FLAG_P*_SHA256 ; en
+    secours (dev/local), un FLAG_P* en clair est haché à la volée au démarrage.
+    """
+    h = os.environ.get(f"FLAG_{phase}_SHA256", "").strip().lower()
+    if h:
+        return h
+    plain = os.environ.get(f"FLAG_{phase}", "").strip()
+    return sha256_hex(plain) if plain else ""
+
+
+# Empreintes SHA-256 des flags attendus (jamais le flag en clair).
+FLAG_HASHES = {p: _load_flag_hash(p) for p in ("P0", "P1", "P2", "P3", "P4", "P5", "P6")}
 
 PHASE_LABELS = {
     "P0": "Réquisition 0 — Prise en main (entraînement)",
@@ -108,7 +121,7 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 group_id INTEGER NOT NULL,
                 phase TEXT NOT NULL,
-                flag_text TEXT NOT NULL,
+                flag_text TEXT NOT NULL,   -- SHA-256 du flag soumis (jamais en clair)
                 correct INTEGER NOT NULL,
                 submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (group_id) REFERENCES groups(id)
@@ -134,10 +147,14 @@ def get_or_create_group(name: str) -> int:
 
 
 def validate_flag(flag_text: str) -> str | None:
-    """Retourne la phase (P1..P6) si le flag est correct, sinon None."""
-    normalized = flag_text.strip()
-    for phase, expected in FLAGS.items():
-        if expected and normalized == expected:
+    """Retourne la phase (P0..P6) si le flag est correct, sinon None.
+
+    La comparaison se fait sur le SHA-256 : aucun flag en clair n'est conservé
+    côté serveur au-delà de la requête courante.
+    """
+    digest = sha256_hex(flag_text.strip())
+    for phase, expected in FLAG_HASHES.items():
+        if expected and digest == expected:
             return phase
     return None
 
@@ -166,6 +183,59 @@ def found_phases(group_name: str) -> set:
             (group_id,),
         ).fetchall()
     return {r["phase"] for r in rows if r["correct"]}
+
+
+# Preuves comptabilisées au classement (l'entraînement P0 reste hors-concours).
+SCORED_PHASES = PHASE_GROUPS[1] + PHASE_GROUPS[2]   # P1..P6
+
+
+def gather_solves():
+    """Première résolution correcte par équipe et par preuve.
+
+    Renvoie un couple :
+      - solves      : {group_id: {phase: solved_at}}
+      - first_blood : {phase: group_id} — 1re équipe à verser la preuve
+    Le `MIN(submitted_at)` neutralise d'éventuels doublons historiques.
+    """
+    placeholders = ",".join("?" * len(SCORED_PHASES))
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT group_id, phase, MIN(submitted_at) AS solved_at "
+            "FROM flag_submissions "
+            f"WHERE correct = 1 AND phase IN ({placeholders}) "
+            "GROUP BY group_id, phase",
+            SCORED_PHASES,
+        ).fetchall()
+    solves: dict = {}
+    first_blood: dict = {}
+    best: dict = {}
+    for r in rows:
+        solves.setdefault(r["group_id"], {})[r["phase"]] = r["solved_at"]
+        ph, at = r["phase"], r["solved_at"]
+        if ph not in best or at < best[ph]:
+            best[ph] = at
+            first_blood[ph] = r["group_id"]
+    return solves, first_blood
+
+
+def ranked_scoreboard(groups, solves):
+    """Classe les équipes : score décroissant, puis dernière preuve la plus tôt.
+
+    Chaque entrée porte rank, name, id, score, last (horodatage) et solves.
+    Une équipe sans preuve est rejetée en fin de classement ('~' > tout chiffre).
+    """
+    rows = []
+    for g in groups:
+        s = solves.get(g["id"], {})
+        rows.append({
+            "id": g["id"], "name": g["name"],
+            "score": len(s), "last": (max(s.values()) if s else None),
+            "solves": s,
+        })
+    rows.sort(key=lambda r: (-r["score"], r["last"] or "~"))
+    for i, r in enumerate(rows, 1):
+        r["rank"] = i
+    return rows
 
 
 def require_group():
@@ -379,6 +449,8 @@ def api_flag():
     phase = validate_flag(flag_text)
     correct = phase is not None
 
+    # On n'archive jamais le flag soumis en clair : seul son SHA-256 est stocké
+    # (la colonne flag_text conserve désormais une empreinte, cf. init_db).
     with get_db() as conn:
         already = conn.execute(
             "SELECT id FROM flag_submissions WHERE group_id = ? AND correct = 1 AND phase = ?",
@@ -387,12 +459,60 @@ def api_flag():
         if not already:
             conn.execute(
                 "INSERT INTO flag_submissions (group_id, phase, flag_text, correct) VALUES (?,?,?,?)",
-                (group_id, phase or "?", flag_text, int(correct)),
+                (group_id, phase or "?", sha256_hex(flag_text), int(correct)),
             )
 
     if correct:
         return jsonify({"correct": True, "phase": phase, "label": PHASE_LABELS[phase]})
     return jsonify({"correct": False})
+
+
+@app.route("/scoreboard")
+def scoreboard():
+    redir = require_group()
+    if redir:
+        return redir
+    with get_db() as conn:
+        groups = conn.execute("SELECT id, name FROM groups ORDER BY created_at").fetchall()
+    solves, first_blood = gather_solves()
+    board = ranked_scoreboard(groups, solves)
+    return render_template(
+        "scoreboard.html",
+        group=session["group_name"],
+        board=board,
+        first_blood=first_blood,
+        phases=SCORED_PHASES,
+        labels=PHASE_LABELS,
+    )
+
+
+@app.route("/api/scoreboard")
+def api_scoreboard():
+    """Classement en JSON — alimente le rafraîchissement en direct."""
+    if not session.get("group_name"):
+        return jsonify({"error": "Groupe non défini"}), 401
+    with get_db() as conn:
+        groups = conn.execute("SELECT id, name FROM groups ORDER BY created_at").fetchall()
+    solves, first_blood = gather_solves()
+    board = ranked_scoreboard(groups, solves)
+    return jsonify({
+        "me": session["group_name"],
+        "phases": SCORED_PHASES,
+        "board": [
+            {
+                "rank": r["rank"], "name": r["name"], "score": r["score"],
+                "last": r["last"],
+                "cells": {
+                    p: {
+                        "solved": p in r["solves"],
+                        "first_blood": first_blood.get(p) == r["id"],
+                    }
+                    for p in SCORED_PHASES
+                },
+            }
+            for r in board
+        ],
+    })
 
 
 @app.route("/pv")
@@ -483,17 +603,12 @@ def dashboard():
         abort(403)
     with get_db() as conn:
         groups = conn.execute("SELECT id, name, created_at FROM groups ORDER BY created_at").fetchall()
-        submissions = conn.execute(
-            "SELECT group_id, phase, correct, submitted_at FROM flag_submissions ORDER BY submitted_at"
-        ).fetchall()
         pvs = conn.execute(
             "SELECT group_id, filename, submitted_at FROM pv_uploads ORDER BY submitted_at"
         ).fetchall()
 
-    found_by_group = {}
-    for s in submissions:
-        if s["correct"]:
-            found_by_group.setdefault(s["group_id"], set()).add(s["phase"])
+    solves, first_blood = gather_solves()
+    board = ranked_scoreboard(groups, solves)
 
     pvs_by_group = {}
     for p in pvs:
@@ -502,8 +617,10 @@ def dashboard():
     return render_template(
         "dashboard.html",
         groups=groups,
-        phases=PHASE_LABELS,
-        found_by_group=found_by_group,
+        board=board,
+        phases={p: PHASE_LABELS[p] for p in SCORED_PHASES},
+        solves=solves,
+        first_blood=first_blood,
         pvs_by_group=pvs_by_group,
         token=token,
     )

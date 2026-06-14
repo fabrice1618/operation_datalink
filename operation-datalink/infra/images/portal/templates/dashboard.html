@@ -7,14 +7,6 @@
 
 {% if groups %}
 
-<!-- Totaux -->
-{% set ns = namespace(solved=0, pv_groups=0) %}
-{% for g in groups %}
-  {% set gfound = found_by_group.get(g.id, []) %}
-  {% set ns.solved = ns.solved + (gfound | length) %}
-{% endfor %}
-{% set ns.pv_groups = pvs_by_group | length %}
-
 <!-- Bandeau de statistiques -->
 <div class="stats-grid">
   <div class="stat-card">
@@ -22,57 +14,63 @@
     <div class="label">Équipes</div>
   </div>
   <div class="stat-card">
-    <div class="value">{{ '%02d' | format(ns.solved) }}</div>
+    <div class="value">{{ '%02d' | format(board | sum(attribute='score')) }}</div>
     <div class="label">Flags validés</div>
   </div>
   <div class="stat-card">
-    <div class="value">{{ '%02d' | format(ns.pv_groups) }}</div>
+    <div class="value">{{ '%02d' | format(pvs_by_group | length) }}</div>
     <div class="label">PV déposés</div>
   </div>
 </div>
 
-<!-- Tableau de progression -->
+<!-- Classement & progression -->
 <div class="ascii-frame" style="margin-bottom: var(--space-6);">
-  <div class="frame-title">Progression par groupe</div>
+  <div class="frame-title">Classement &amp; progression</div>
   <div class="frame-body" style="padding: var(--space-4); overflow-x: auto;">
     <table class="data-table">
       <thead>
         <tr>
+          <th class="tc" style="width: 4ch;">#</th>
           <th>Groupe</th>
           {% for phase, label in phases.items() %}
           <th class="tc" title="{{ label }}">{{ phase }}</th>
           {% endfor %}
           <th class="tc">Score</th>
+          <th class="tc">Dernière preuve</th>
           <th class="tc">PV</th>
         </tr>
       </thead>
       <tbody>
-        {% for g in groups %}
-        {% set gfound = found_by_group.get(g.id, []) %}
-        {% set gpvs   = pvs_by_group.get(g.id, []) %}
-        {% set score  = gfound | length %}
-        {% set total  = phases | length %}
+        {% for row in board %}
+        {% set gpvs  = pvs_by_group.get(row.id, []) %}
+        {% set total = phases | length %}
         <tr>
+          <td class="tc text-bright">{{ row.rank }}</td>
           <td>
-            <div class="text-bright">{{ g.name }}</div>
-            <div class="text-faint" style="font-size: var(--fs-2xs);">// {{ g.created_at }}</div>
+            <div class="text-bright">{{ row.name }}</div>
           </td>
           {% for phase in phases %}
+          {% set at = row.solves.get(phase) %}
+          {% set fb = first_blood.get(phase) == row.id %}
           <td class="tc">
-            {% if phase in gfound %}
-            <span class="text-bright">✓</span>
+            {% if at %}
+              {% if fb %}<span class="fb" title="1er sang — {{ at }}">⚑</span>
+              {% else %}<span class="text-bright" title="{{ at }}">✓</span>{% endif %}
             {% else %}
-            <span class="text-faint">··</span>
+              <span class="text-faint">··</span>
             {% endif %}
           </td>
           {% endfor %}
           <td class="tc">
             <span class="badge
-              {% if score == total %}badge-success
-              {% elif score > 0   %}badge-info
-              {% else             %}badge-pending{% endif %}">
-              {{ score }}/{{ total }}
+              {% if row.score == total %}badge-success
+              {% elif row.score > 0   %}badge-info
+              {% else                 %}badge-pending{% endif %}">
+              {{ row.score }}/{{ total }}
             </span>
+          </td>
+          <td class="tc text-dim" style="font-size: var(--fs-2xs);">
+            {{ row.last[11:19] if row.last else '—' }}
           </td>
           <td class="tc">
             {% if gpvs %}
@@ -90,6 +88,10 @@
     </table>
   </div>
 </div>
+<p class="text-faint" style="font-size: var(--fs-xs); margin: -.5rem 0 var(--space-6); letter-spacing: .04em;">
+  <span class="fb">⚑</span> = 1er sang (1re équipe sur la preuve) · survolez une case pour l'horodatage ·
+  classement par score puis preuve la plus précoce.
+</p>
 
 {% if pvs_by_group %}
 <div class="ascii-frame">
@@ -132,5 +134,6 @@
     gap: var(--space-4); margin-bottom: var(--space-8);
   }
   @media (max-width: 600px) { .stats-grid { grid-template-columns: 1fr; } }
+  .fb { color: var(--p-max); text-shadow: var(--text-glow-strong); }
 </style>
 {% endblock %}

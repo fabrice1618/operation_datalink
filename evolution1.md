@@ -61,7 +61,7 @@ tout réécrire mais d'offrir un menu d'améliorations priorisables.
 
 ## 3. Axe « Ludique » — engagement, jeu, immersion
 
-### P1. Plateforme d'auto-validation des flags + tableau des scores *(impact ★★★, effort ★★)*
+### P1. Plateforme d'auto-validation des flags + tableau des scores *(impact ★★★, effort ★★)* — ✅ traité
 **Intention :** boucle de feedback immédiate, le cœur du « fun » d'un CTF.
 **Proposition :** un petit portail web (CTFd, ou une page statique + micro-service
 Flask) où les binômes soumettent leurs `DATALINK{...}`. Le service ne stocke que les
@@ -70,6 +70,19 @@ affiche une **barre de progression** et un **scoreboard** d'équipe avec horodat
 (*first blood*). Bénéfice double : motivation, et l'enseignant est libéré de la
 validation technique pour se concentrer sur le **raisonnement du PV** (le vrai
 apprentissage). Hébergeable sur le poste enseignant ; aucune fuite de source.
+
+**Réalisé (portail Flask `infra/images/portal/`) :**
+- **Validation par SHA-256** : `docker-compose.yml` ne porte plus que les empreintes
+  `FLAG_P*_SHA256` (plus aucun flag en clair) ; les soumissions sont elles aussi
+  archivées hachées. Helper de régénération : `infra/gen-flag-hashes.py`.
+- **Feedback immédiat** déjà en place (`/api/flag`) + **barre de progression** par
+  équipe (`preuves.html`).
+- **Scoreboard côté équipes** (`/scoreboard`, lien « Classement » dans la navbar) :
+  classement temps réel (rafraîchi via `/api/scoreboard`), score, horodatage de la
+  dernière preuve et marqueur **⚑ 1er sang** par réquisition ; tri par score puis
+  preuve la plus précoce.
+- **Dashboard enseignant** (`/dashboard`) enrichi : mêmes classement, 1er sang et
+  horodatages de résolution (au survol).
 
 ### P2. Système d'indices à coût *(impact ★★, effort ★)*
 **Intention :** apprendre à chercher avant de demander, sans laisser personne bloqué.
@@ -247,7 +260,7 @@ assertions. Sécurise les mises à jour futures (dont celles de ce document).
 
 | Réf. | Proposition | Impact | Effort | Quand |
 |------|-------------|:------:|:------:|-------|
-| P1  | Auto-validation + scoreboard | ★★★ | ★★ | **Palier 1** |
+| P1  | Auto-validation + scoreboard | ★★★ | ★★ | **Palier 1** ✅ |
 | P6  | Réquisition 0 (prise en main) | ★★★ | ★ | **Palier 1** |
 | P15 | Débrief côté bleu | ★★★ | ★ | **Palier 1** |
 | P18 | Antisèche Wireshark | ★★ | ★ | **Palier 1** |

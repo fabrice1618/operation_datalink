@@ -583,6 +583,8 @@
         <button type="button" class="theme-opt" data-theme="amber">ambre</button>
       </span>
       {% if session.get('group_name') %}
+      <a href="{{ url_for('scoreboard') }}"
+         class="nav-link {% if current_step == 'scoreboard' %}active{% endif %}">Classement</a>
       <span class="group-badge">Équipe: <b>{{ session.group_name }}</b></span>
       <a href="{{ url_for('logout') }}" class="icon-link" title="Fermer la session">[×]</a>
       {% endif %}

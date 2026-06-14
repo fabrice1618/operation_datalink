@@ -18,6 +18,7 @@
     <span class="text-dim">[</span><span class="term-bright" id="bar-filled">{{ '█' * filled }}</span><span style="color: var(--p-ghost);" id="bar-empty">{{ '░' * (cells - filled) }}</span><span class="text-dim">]</span>
   </span>
   <span class="text-bright"><span id="counter">{{ count }}</span>/{{ total }} PREUVE(S) VERSÉE(S)</span>
+  <a href="{{ url_for('scoreboard') }}" class="nav-link" style="margin-left: auto;">Classement</a>
 </div>
 
 <div class="flags-grid">
