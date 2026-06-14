@@ -6,17 +6,6 @@ Vous disposez de deux scellés et du modèle de procès-verbal. Travaillez de
 préférence avec **Wireshark** (filtres d'affichage, *Suivre le flux TCP/HTTP*,
 *Exporter des objets*). `tcpdump`, `nmap` et un client web/FTP peuvent compléter.
 
-> **Pas encore à l'aise avec Wireshark ?** Faites d'abord la
-> [Réquisition 0 — prise en main](/prise-en-main) (5 min) et gardez les antisèches
-> [Wireshark](/aide/wireshark) et [tcpdump](/aide/tcpdump) sous la main.
-
-> **Méthode.** Pour chaque réquisition : repérez le bon protocole (filtre),
-> reconstituez l'échange, extrayez le **jeton `DATALINK{...}`**, puis renseignez
-> le PV (trame, IP source/destination, port, horodatage, infraction).
-
-Filtres Wireshark utiles : `http`, `ftp`, `ftp-data`, `smtp`, `dns`, `telnet`,
-`arp`, `tcp.flags.syn==1 && tcp.flags.ack==0`, `ip.addr==10.13.37.66`.
-
 ## Deux voies, à vous de choisir
 
 Chaque réquisition se joue à **deux niveaux**, et **vous choisissez preuve par

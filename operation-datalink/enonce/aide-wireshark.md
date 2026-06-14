@@ -48,7 +48,7 @@ ip.src == 192.168.1.10
 ip.dst == 8.8.8.8
 tcp.flags.syn == 1
 http.request
-dns.response
+dns.flags.response == 1
 ```
 
 Astuce : les filtres deviennent verts s’ils sont valides
