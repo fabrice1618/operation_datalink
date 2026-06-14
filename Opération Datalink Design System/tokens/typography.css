@@ -1,0 +1,41 @@
+/* ──────────────────────────────────────────────────────────────
+   Opération Datalink — Typography  (one bitmap face: VT323)
+   VT323 has a single weight; emphasis is brightness + glow, not bold.
+   It is a small face per em, so the scale runs LARGE — base ~19px.
+   ────────────────────────────────────────────────────────────── */
+:root {
+  /* ── Families (all the same face, named by role) ──────────── */
+  --font-term:    'VT323', 'Share Tech Mono', monospace;
+  --font-mono:    var(--font-term);
+  --font-display: var(--font-term);
+  --font-body:    var(--font-term);
+
+  /* ── Size scale (rem; base body ≈ 19px) ───────────────────── */
+  --fs-2xs:  .82rem;   /* ~13px dense table / footer              */
+  --fs-xs:   .95rem;   /* ~15px labels, hints                     */
+  --fs-sm:   1.05rem;  /* ~17px controls, nav                     */
+  --fs-base: 1.18rem;  /* ~19px body — VT323 needs size to read   */
+  --fs-md:   1.45rem;  /* lead lines                              */
+  --fs-lg:   2rem;     /* page headings                           */
+  --fs-xl:   3rem;     /* stat numerals                           */
+  --fs-2xl:  4.5rem;   /* boot / hero brand                       */
+
+  /* ── Line heights (tight — terminal rows) ─────────────────── */
+  --lh-tight: 1.1;  /* @kind font */
+  --lh-snug:  1.25; /* @kind font */
+  --lh-base:  1.4;  /* @kind font */
+  --lh-prose: 1.55; /* @kind font */
+
+  /* ── Letter-spacing (wide tracking still reads on headers) ── */
+  --ls-normal:  0;      /* @kind font */
+  --ls-wide:    .08em;  /* @kind font */
+  --ls-wider:   .14em;  /* @kind font */
+  --ls-widest:  .26em;  /* @kind font */
+
+  /* ── Semantic type roles ──────────────────────────────────── */
+  --type-brand:   var(--fs-lg)/var(--lh-tight) var(--font-display);
+  --type-heading: var(--fs-lg)/var(--lh-tight) var(--font-display);
+  --type-stat:    var(--fs-xl)/1 var(--font-display);
+  --type-body:    var(--fs-base)/var(--lh-base) var(--font-body);
+  --type-label:   var(--fs-xs)/var(--lh-snug) var(--font-body);
+}

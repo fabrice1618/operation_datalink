@@ -1,0 +1,144 @@
+<!-- @dsCard group="Datalink" viewport="1100x720" name="Opération Datalink — Terminal" subtitle="Pipeline judiciaire : home → équipe → saisine → réquisitions → preuves → phase 2 → PV → fin" -->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Opération Datalink — Portail d'investigation réseau</title>
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  html, body { height: 100%; }
+  /* Terminal document prose (dossier reader) */
+  .prose { color: var(--p-text); line-height: 1.55; font-size: var(--fs-sm); }
+  .prose h1 { font-family: var(--font-term); font-size: var(--fs-md); color: var(--p-bright);
+              letter-spacing: .08em; margin: 0 0 1rem; text-transform: uppercase; text-shadow: var(--text-glow); }
+  .prose h1::before { content: '▌ '; color: var(--p-max); }
+  .prose h2 { font-family: var(--font-term); font-size: var(--fs-base); color: var(--p-bright);
+              letter-spacing: .06em; margin: 1.5rem 0 .6rem; text-transform: uppercase; }
+  .prose h2::before { content: '// '; color: var(--p-faint); }
+  .prose p { margin-bottom: .7rem; }
+  .prose code { background: var(--bg-inset); padding: 0 .4ch; font-family: var(--font-term);
+                color: var(--p-bright); border: 1px solid var(--p-ghost); }
+  .prose blockquote { border-left: 2px solid var(--p-faint); padding: .3rem 1ch; margin: .9rem 0;
+                      background: var(--p-glow); color: var(--p-dim); }
+  .prose blockquote::before { content: '>> '; color: var(--p-faint); }
+  .prose ul, .prose ol { padding-left: 2.2ch; margin-bottom: .7rem; }
+  .prose li { margin-bottom: .2rem; }
+  .prose li::marker { color: var(--p-faint); }
+  .prose strong { color: var(--p-bright); }
+  .prose em { color: var(--p-dim); font-style: normal; text-decoration: underline; }
+  .prose table { width: 100%; border-collapse: collapse; margin: .9rem 0; }
+  .prose th { padding: .35rem 1ch; text-align: left; border: 1px solid var(--frame-line);
+              color: var(--p-dim); letter-spacing: .06em; font-size: var(--fs-xs); text-transform: uppercase; }
+  .prose td { padding: .35rem 1ch; border: 1px solid var(--p-ghost); color: var(--p-text); }
+</style>
+</head>
+<body class="datalink">
+<div id="root"></div>
+
+<script>window.DS = window.OpRationDatalinkDesignSystem_63bf2d;</script>
+<script src="data.js"></script>
+<script type="text/babel" src="AppShell.jsx"></script>
+<script type="text/babel" src="StepFooter.jsx"></script>
+<script type="text/babel" src="BootSequence.jsx"></script>
+<script type="text/babel" src="HomeScreen.jsx"></script>
+<script type="text/babel" src="EquipeScreen.jsx"></script>
+<script type="text/babel" src="SaisineScreen.jsx"></script>
+<script type="text/babel" src="RequisitionsScreen.jsx"></script>
+<script type="text/babel" src="PreuvesScreen.jsx"></script>
+<script type="text/babel" src="Phase2Screen.jsx"></script>
+<script type="text/babel" src="PvScreen.jsx"></script>
+<script type="text/babel" src="FinScreen.jsx"></script>
+<script type="text/babel" src="SuperviseurScreen.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+  const D = window.DATALINK_DATA;
+  const { phases, phaseGroups, requisitions } = D;
+  const STEPS = window.DL_STEPS;
+  const stepIndex = (key) => STEPS.findIndex((s) => s.key === key);
+
+  const SEED_TEAMS = [
+    { name: 'ÉQUIPE-ALPHA',   createdAt: '02:02', found: ['phase_01','phase_02','phase_03','phase_04','phase_05'], pv: true },
+    { name: 'ÉQUIPE-BÊTA',    createdAt: '02:05', found: ['phase_01','phase_02','phase_03'], pv: true },
+    { name: 'ÉQUIPE-GAMMA',   createdAt: '02:07', found: ['phase_01','phase_02'], pv: false },
+    { name: 'ÉQUIPE-DELTA',   createdAt: '02:11', found: [], pv: false },
+  ];
+
+  function App() {
+    const [route, setRoute] = React.useState('boot');
+    const [group, setGroup] = React.useState(null);
+    const [phosphor, setPhosphor] = React.useState('green');
+    const [found, setFound] = React.useState([]);
+    const [pvs, setPvs] = React.useState([]);
+    const [maxStep, setMaxStep] = React.useState(0);
+    const [prevRoute, setPrevRoute] = React.useState('fin'); // return target for superviseur
+
+    window.DLNAV = setRoute;
+
+    React.useEffect(() => {
+      document.documentElement.setAttribute('data-phosphor', phosphor);
+    }, [phosphor]);
+
+    // Track furthest pipeline step reached (for the stepper).
+    React.useEffect(() => {
+      const idx = stepIndex(route);
+      if (idx >= 0) setMaxStep((m) => Math.max(m, idx));
+    }, [route]);
+
+    function go(key) { setRoute(key); }
+    function enter() { setRoute('equipe'); }
+    function choose(name) { setGroup(name); setRoute('saisine'); }
+    function solve(code) { setFound((f) => f.includes(code) ? f : [...f, code]); }
+    function submitPv(pv) { setPvs((p) => [...p, pv]); }
+    function openSup() { if (route !== 'superviseur') setPrevRoute(route); setRoute('superviseur'); }
+
+    const teams = group
+      ? [...SEED_TEAMS, { name: group, createdAt: 'live', found, pv: pvs.length > 0 }]
+      : SEED_TEAMS;
+
+    let screen;
+    if (route === 'boot') {
+      screen = <BootSequence onDone={() => setRoute('home')} />;
+    } else if (route === 'home') {
+      screen = <HomeScreen access={D.access} onEnter={enter} />;
+    } else if (route === 'equipe') {
+      screen = <EquipeScreen teams={D.greekTeams} onChoose={choose} />;
+    } else if (route === 'saisine') {
+      screen = <SaisineScreen saisine={D.saisine} captures={D.captures} onNext={() => go('requisitions')} />;
+    } else if (route === 'requisitions') {
+      screen = <RequisitionsScreen phase={1} requisitions={requisitions[1]} outils={D.outils}
+                  found={found} phaseKeys={phaseGroups[1]} onBack={() => go('saisine')} onNext={() => go('preuves')} />;
+    } else if (route === 'preuves') {
+      screen = <PreuvesScreen phase={1} phaseKeys={phaseGroups[1]} phases={phases} requisitions={requisitions[1]}
+                  group={group} found={found} onSolve={solve} onBack={() => go('requisitions')} onNext={() => go('phase2')} />;
+    } else if (route === 'phase2') {
+      screen = <Phase2Screen supplement={D.supplement} captures2={D.captures2}
+                  onBack={() => go('preuves')} onNext={() => go('preuves2')} />;
+    } else if (route === 'preuves2') {
+      screen = <PreuvesScreen phase={2} phaseKeys={phaseGroups[2]} phases={phases} requisitions={requisitions[2]}
+                  group={group} found={found} onSolve={solve} onBack={() => go('phase2')} onNext={() => go('pv')} />;
+    } else if (route === 'pv') {
+      screen = <PvScreen group={group} pvs={pvs} onSubmit={submitPv} onBack={() => go('preuves2')} onNext={() => go('fin')} />;
+    } else if (route === 'fin') {
+      screen = <FinScreen group={group} phases={phases} found={found} pvs={pvs} onSuperviseur={openSup} />;
+    } else if (route === 'superviseur') {
+      screen = <SuperviseurScreen phases={phases} teams={teams} onBack={() => go(prevRoute)} />;
+    }
+
+    return (
+      <AppShell route={route} group={group} phosphor={phosphor} maxStep={maxStep}
+                onTogglePhosphor={() => setPhosphor((p) => p === 'green' ? 'amber' : 'green')}
+                onNav={go} onSuperviseur={openSup}>
+        {screen}
+      </AppShell>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

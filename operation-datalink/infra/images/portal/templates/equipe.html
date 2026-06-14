@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Désignation d'équipe — Opération Datalink{% endblock %}
+{% block content %}
+
+<div style="max-width: 640px; margin: 2.5rem auto;">
+
+  <div class="page-heading">Désignation d'équipe</div>
+  <div class="page-subhead">sélectionnez votre lettre grecque</div>
+
+  <div class="ascii-frame">
+    <div class="frame-title">Équipes</div>
+    <div class="frame-body">
+      <p class="text-dim" style="font-size: var(--fs-sm); margin-bottom: var(--space-5);">
+        <span class="text-faint">&gt;&gt;</span> Chaque équipe d'enquêteurs est désignée par une
+        lettre grecque. Choisissez votre désignation pour ouvrir le dossier.
+      </p>
+
+      <div class="team-grid">
+        {% for name, glyph in teams %}
+        <form method="post" action="{{ url_for('set_group') }}">
+          <input type="hidden" name="group_name" value="{{ name }}">
+          <button type="submit" class="team-tile {% if name == current %}active{% endif %}"
+                  title="Équipe {{ name }}">
+            <span class="team-glyph">{{ glyph }}</span>
+            <span class="team-name">{{ name }}</span>
+          </button>
+        </form>
+        {% endfor %}
+      </div>
+
+      {% if current %}
+      <div class="sep"></div>
+      <p style="font-size: var(--fs-sm);">
+        <span class="text-faint">&gt;&gt;</span> équipe active —
+        <span class="term-inverse" style="padding: 0 .5ch;">{{ current }}</span>
+        &nbsp;·&nbsp;
+        <a href="{{ url_for('saisine') }}" class="btn btn-secondary" style="padding: 0;">Reprendre ▸</a>
+      </p>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<style>
+  .team-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-3);
+  }
+  .team-tile {
+    width: 100%;
+    display: flex; flex-direction: column; align-items: center; gap: .2rem;
+    padding: var(--space-4) var(--space-2);
+    background: var(--bg-inset); border: 1px solid var(--frame-line);
+    color: var(--p-text); font-family: var(--font-term);
+    text-shadow: var(--text-glow); cursor: pointer;
+    transition: background var(--t-fast), color var(--t-fast), border-color var(--t-fast);
+  }
+  .team-tile:hover { border-color: var(--p-bright); box-shadow: var(--box-glow); }
+  .team-tile .team-glyph { font-size: var(--fs-xl); line-height: 1; color: var(--p-bright); text-shadow: var(--text-glow-strong); }
+  .team-tile .team-name  { font-size: var(--fs-xs); letter-spacing: .14em; color: var(--p-dim); }
+  .team-tile.active { background: var(--inverse-bg); color: var(--inverse-fg); text-shadow: none; }
+  .team-tile.active .team-glyph, .team-tile.active .team-name { color: var(--inverse-fg); text-shadow: none; }
+  @media (max-width: 560px) { .team-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+{% endblock %}

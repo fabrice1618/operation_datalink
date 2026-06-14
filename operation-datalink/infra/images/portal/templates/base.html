@@ -6,7 +6,7 @@
   <title>{% block title %}Opération Datalink{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <script>
     // Applique la phosphore mémorisée avant le premier rendu (évite le flash)
     (function () {
@@ -43,8 +43,11 @@
       --inverse-bg: var(--p-text);
       --inverse-fg: var(--bg-screen);
 
-      /* typo — une seule fonte bitmap, la graisse = luminosité */
-      --font-term: 'VT323', 'Share Tech Mono', monospace;
+      /* typo — deux fontes :
+         --font-read : sans-serif haute lisibilité pour le texte de lecture
+         --font-term : monospace pour l'habillage terminal (alignement ASCII) */
+      --font-read: 'Atkinson Hyperlegible', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --font-term: 'JetBrains Mono', 'Share Tech Mono', ui-monospace, 'Cascadia Code', Consolas, monospace;
       --fs-2xs:  .82rem;
       --fs-xs:   .95rem;
       --fs-sm:   1.05rem;
@@ -65,8 +68,8 @@
       --container-narrow: 460px;
       --header-height:    52px;
 
-      /* effets CRT — un seul bouton de réglage */
-      --crt-intensity: .55;
+      /* effets CRT — un seul bouton de réglage (réduit pour la lisibilité) */
+      --crt-intensity: .3;
       --text-glow: 0 0 calc(.45rem * var(--crt-intensity)) rgba(var(--phosphor-rgb), calc(.55 * var(--crt-intensity)));
       --text-glow-strong: 0 0 calc(.8rem * var(--crt-intensity)) rgba(var(--phosphor-rgb), calc(.8 * var(--crt-intensity)));
       --box-glow: 0 0 calc(1.4rem * var(--crt-intensity)) rgba(var(--phosphor-rgb), calc(.16 * var(--crt-intensity)));
@@ -96,16 +99,23 @@
         var(--bg-screen);
       background-attachment: fixed;
       color: var(--p-text);
-      font-family: var(--font-term);
+      font-family: var(--font-read);
       font-size: var(--fs-base);
-      line-height: 1.4;
-      letter-spacing: .01em;
+      line-height: 1.6;
+      letter-spacing: normal;
       text-shadow: var(--text-glow);
       position: relative;
       overflow-x: hidden;
-      -webkit-font-smoothing: none;
-      text-rendering: geometricPrecision;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
     }
+
+    /* Habillage qui exige la chasse fixe (points de fuite, cadres ┤ ├, marque,
+       champs/boutons « commande ») — on y rétablit le monospace. */
+    .brand, .menu-item, .frame-title, .frame-right,
+    .stepper, .step, .data-table, .group-badge,
+    code, pre, kbd, samp { font-family: var(--font-term); }
 
     /* trame de balayage */
     body.datalink::before {
@@ -182,17 +192,40 @@
     }
 
     .brand {
-      display: flex; align-items: baseline; gap: 1ch;
+      display: flex; align-items: center; gap: 1ch;
       text-decoration: none; flex-shrink: 0; white-space: nowrap;
     }
-    .brand .block { color: var(--p-max); align-self: center; }
+    /* logo bouclier en masque : sa couleur suit la phosphore (vert / ambre) */
+    .brand-logo {
+      width: 32px; height: 32px; flex-shrink: 0;
+      background-color: var(--p-max);
+      -webkit-mask: url("{{ url_for('static', filename='logo_navbar.png') }}") center / contain no-repeat;
+              mask: url("{{ url_for('static', filename='logo_navbar.png') }}") center / contain no-repeat;
+      filter: drop-shadow(0 0 calc(.35rem * var(--crt-intensity)) rgba(var(--phosphor-rgb), calc(.6 * var(--crt-intensity))));
+    }
     .brand .name {
       color: var(--p-bright); font-size: var(--fs-md);
       letter-spacing: .1em; text-shadow: var(--text-glow-strong);
     }
-    .brand .sub { color: var(--p-faint); font-size: var(--fs-xs); letter-spacing: .08em; }
 
-    .site-nav { display: flex; align-items: center; gap: 1ch; }
+    .site-nav { display: flex; align-items: center; gap: 1.6ch; }
+
+    /* sélecteur de phosphore — Thème : vert ou ambre */
+    .theme-switch {
+      display: inline-flex; align-items: center; gap: .5ch;
+      font-family: var(--font-term); font-size: var(--fs-xs); letter-spacing: .08em;
+    }
+    .theme-label { color: var(--p-dim); text-transform: uppercase; }
+    .theme-sep   { color: var(--p-faint); }
+    .theme-opt {
+      background: none; border: none; cursor: pointer;
+      padding: .1rem .5ch; color: var(--p-dim);
+      font-family: var(--font-term); font-size: var(--fs-xs);
+      letter-spacing: .08em; text-transform: uppercase; text-shadow: var(--text-glow);
+      transition: background var(--t-fast), color var(--t-fast);
+    }
+    .theme-opt:hover { color: var(--p-bright); }
+    .theme-opt.active { background: var(--inverse-bg); color: var(--inverse-fg); text-shadow: none; }
 
     .nav-link {
       display: inline-flex; align-items: center; gap: .5ch;
@@ -215,18 +248,51 @@
     }
     .group-badge b { color: var(--p-bright); font-weight: normal; }
 
-    .phos-toggle {
-      background: none; border: none; cursor: pointer;
-      color: var(--p-faint); font-family: var(--font-term);
-      font-size: var(--fs-xs); letter-spacing: .1em;
-      text-shadow: var(--text-glow); padding: .1rem 0;
+    .icon-link {
+      text-decoration: none; color: var(--p-faint);
+      font-size: var(--fs-sm); letter-spacing: .08em;
+      text-shadow: var(--text-glow); white-space: nowrap;
     }
-    .phos-toggle:hover { color: var(--p-bright); }
+    .icon-link:hover { color: var(--p-bright); }
+
+    /* ── Stepper du pipeline judiciaire ───────────────────────── */
+    .stepper {
+      max-width: var(--container-max); margin: 0 auto;
+      padding: .4rem var(--space-6);
+      display: flex; flex-wrap: wrap; align-items: center; gap: .1ch;
+      font-size: var(--fs-xs);
+    }
+    .stepper-band {
+      border-bottom: 1px solid var(--p-ghost);
+      background: rgba(var(--screen-rgb), .6);
+    }
+    .step {
+      display: inline-flex; align-items: center; gap: .5ch;
+      padding: .12rem .7ch; text-decoration: none;
+      color: var(--p-dim); text-transform: uppercase; letter-spacing: .05em;
+      text-shadow: var(--text-glow); white-space: nowrap;
+      transition: background var(--t-fast), color var(--t-fast);
+    }
+    .step .step-n { color: var(--p-bright); }
+    .step:hover { color: var(--p-bright); }
+    .step.active { background: var(--inverse-bg); color: var(--inverse-fg); text-shadow: none; }
+    .step.active .step-n { color: var(--inverse-fg); }
+    .step.done .step-n::after { content: '✓'; margin-left: .3ch; }
+    .step-sep { color: var(--p-ghost); }
+
+    /* ── Footer Retour / Continuer ────────────────────────────── */
+    .step-footer {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 1rem; flex-wrap: wrap;
+      margin-top: var(--space-8); padding-top: var(--space-4);
+      border-top: 1px solid var(--p-ghost);
+    }
+    .step-footer .spacer { flex: 1; }
 
     /* ── Layout ───────────────────────────────────────────────── */
     .main-content {
       max-width: var(--container-max); margin: 0 auto;
-      padding: 1.75rem var(--space-6) 3.5rem;
+      padding: 2.5rem var(--space-6) 4.5rem;
     }
 
     /* ── Alertes — ligne système >> ───────────────────────────── */
@@ -441,24 +507,26 @@
     }
 
     /* ── Prose (markdown des dossiers) ────────────────────────── */
-    .prose { color: var(--p-text); line-height: 1.55; }
+    .prose { color: var(--p-text); line-height: 1.8; max-width: 72ch; }
     .prose h1 {
       font-size: var(--fs-lg); color: var(--p-bright);
       letter-spacing: .08em; text-transform: uppercase;
       text-shadow: var(--text-glow-strong);
-      margin: 2rem 0 1rem; line-height: 1.1; font-weight: normal;
+      margin: 2.75rem 0 1.25rem; line-height: 1.2; font-weight: normal;
     }
     .prose h1::before { content: '\258C '; color: var(--p-max); } /* ▌ */
     .prose h2 {
       font-size: var(--fs-md); color: var(--p-bright);
       letter-spacing: .06em; text-transform: uppercase;
-      margin: 1.75rem 0 .75rem; font-weight: normal;
-      border-bottom: 1px solid var(--p-ghost); padding-bottom: .25rem;
+      margin: 2.5rem 0 1rem; font-weight: normal;
+      border-bottom: 1px solid var(--p-ghost); padding-bottom: .35rem;
     }
-    .prose h3 { font-size: var(--fs-base); color: var(--p-bright); margin: 1.25rem 0 .5rem; font-weight: normal; }
-    .prose p { margin-bottom: .85rem; }
+    .prose h3 { font-size: var(--fs-base); color: var(--p-bright); margin: 2rem 0 .65rem; font-weight: normal; }
+    .prose p { margin-bottom: 1.25rem; }
     .prose a { color: var(--p-bright); text-decoration: none; border-bottom: 1px dotted var(--p-faint); }
     .prose a:hover { background: var(--inverse-bg); color: var(--inverse-fg); text-shadow: none; }
+    /* liens de téléchargement (scellés) — soulignement plein, bien visible */
+    .prose a[href^="/captures/"] { border-bottom: 1px solid currentColor; }
     .prose strong { color: var(--p-bright); font-weight: normal; text-shadow: var(--text-glow-strong); }
     .prose em { color: var(--p-dim); font-style: italic; }
     .prose code {
@@ -482,14 +550,14 @@
       letter-spacing: .1em; font-size: var(--fs-xs); text-transform: uppercase;
     }
     .prose table td { padding: .4rem .75rem; border: 1px solid var(--p-ghost); }
-    .prose ul, .prose ol { padding-left: 2.5ch; margin-bottom: .85rem; }
-    .prose li { margin-bottom: .25rem; }
+    .prose ul, .prose ol { padding-left: 1.6em; margin-bottom: 1.25rem; }
+    .prose li { margin-bottom: .55rem; }
     .prose hr { border: none; border-top: 1px solid var(--p-ghost); margin: 1.5rem 0; }
 
     @media (max-width: 768px) {
       .header-inner { padding: 0 1rem; }
       .main-content { padding: 1.5rem 1rem 3rem; }
-      .brand .sub { display: none; }
+      .theme-label, .theme-sep { display: none; }
     }
   </style>
   {% block head %}{% endblock %}
@@ -499,24 +567,35 @@
 <header class="site-header">
   <div class="header-inner">
     <a href="{{ url_for('index') }}" class="brand">
-      <span class="block">▌</span>
-      <span class="name">OP. DATALINK</span>
-      <span class="sub">// portail d'investigation réseau</span>
+      <span class="brand-logo" aria-hidden="true"></span>
+      <span class="name">Opération DATALINK</span>
     </a>
     <nav class="site-nav">
-      <a href="{{ url_for('enonce_list') }}"
-         class="nav-link {% if request.endpoint in ('enonce_list','enonce_view') %}active{% endif %}">Énoncé</a>
-      <a href="{{ url_for('flags') }}"
-         class="nav-link {% if request.endpoint == 'flags' %}active{% endif %}">Flags</a>
-      <a href="{{ url_for('pv') }}"
-         class="nav-link {% if request.endpoint == 'pv' %}active{% endif %}">Procès-verbal</a>
+      <span class="theme-switch" role="group" aria-label="Thème d'affichage">
+        <span class="theme-label">Thème :</span>
+        <button type="button" class="theme-opt" data-theme="green">vert</button>
+        <span class="theme-sep">ou</span>
+        <button type="button" class="theme-opt" data-theme="amber">ambre</button>
+      </span>
       {% if session.get('group_name') %}
-      <span class="group-badge">EQ:<b>{{ session.group_name }}</b></span>
+      <span class="group-badge">Équipe: <b>{{ session.group_name }}</b></span>
+      <a href="{{ url_for('logout') }}" class="icon-link" title="Fermer la session">[×]</a>
       {% endif %}
-      <button type="button" class="phos-toggle" id="phos-toggle"
-              title="Basculer la phosphore verte / ambre">AMB</button>
     </nav>
   </div>
+  {% if session.get('group_name') %}
+  <div class="stepper-band">
+    <nav class="stepper" aria-label="Progression de l'instruction">
+      {% for ep, label in pipeline %}
+      <a href="{{ url_for(ep) }}"
+         class="step {% if ep == current_step %}active{% endif %}">
+        <span class="step-n">{{ loop.index }}</span><span class="step-l">{{ label }}</span>
+      </a>
+      {% if not loop.last %}<span class="step-sep">›</span>{% endif %}
+      {% endfor %}
+    </nav>
+  </div>
+  {% endif %}
 </header>
 
 <main class="main-content">
@@ -530,6 +609,18 @@
     {% endfor %}
   {% endwith %}
   {% block content %}{% endblock %}
+
+  {% if in_pipeline %}
+  <div class="step-footer">
+    {% if prev_step %}
+    <a href="{{ url_for(prev_step[0]) }}" class="btn btn-secondary">◂ {{ prev_step[1] }}</a>
+    {% else %}<span></span>{% endif %}
+    <span class="spacer"></span>
+    {% if next_step %}
+    <a href="{{ url_for(next_step[0]) }}" class="btn">{{ next_step[1] }} ▸</a>
+    {% else %}<span></span>{% endif %}
+  </div>
+  {% endif %}
 </main>
 
 <footer class="site-footer">
@@ -539,23 +630,29 @@
 
 <script>
   (function () {
-    var btn = document.getElementById('phos-toggle');
-    function label() {
-      var amber = document.documentElement.getAttribute('data-phosphor') === 'amber';
-      btn.textContent = amber ? 'VRT' : 'AMB';
-    }
-    btn.addEventListener('click', function () {
-      var amber = document.documentElement.getAttribute('data-phosphor') === 'amber';
-      if (amber) {
-        document.documentElement.removeAttribute('data-phosphor');
-        localStorage.removeItem('datalink-phosphor');
-      } else {
+    var opts = document.querySelectorAll('.theme-opt');
+    function apply(theme) {
+      if (theme === 'amber') {
         document.documentElement.setAttribute('data-phosphor', 'amber');
         localStorage.setItem('datalink-phosphor', 'amber');
+      } else {
+        document.documentElement.removeAttribute('data-phosphor');
+        localStorage.removeItem('datalink-phosphor');
       }
-      label();
+      sync();
+    }
+    function sync() {
+      var amber = document.documentElement.getAttribute('data-phosphor') === 'amber';
+      var current = amber ? 'amber' : 'green';
+      opts.forEach(function (o) {
+        o.classList.toggle('active', o.getAttribute('data-theme') === current);
+        o.setAttribute('aria-pressed', o.getAttribute('data-theme') === current);
+      });
+    }
+    opts.forEach(function (o) {
+      o.addEventListener('click', function () { apply(o.getAttribute('data-theme')); });
     });
-    label();
+    sync();
   })();
 </script>
 {% block scripts %}{% endblock %}

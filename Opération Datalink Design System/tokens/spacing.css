@@ -1,0 +1,36 @@
+/* ──────────────────────────────────────────────────────────────
+   Opération Datalink — Spacing, sizing & radius
+   Terminal rhythm: tight rows, monospaced columns. Corners are
+   square EXCEPT the CRT bezel, which gets a gentle glass radius.
+   ────────────────────────────────────────────────────────────── */
+:root {
+  /* ── Spacing scale (rem) ──────────────────────────────────── */
+  --space-0:   0;
+  --space-1:   .25rem;   /*  4px micro gaps                       */
+  --space-2:   .5rem;    /*  8px icon↔label                       */
+  --space-3:   .75rem;   /* 12px control gaps                     */
+  --space-4:   1rem;     /* 16px frame padding, gutters           */
+  --space-5:   1.25rem;  /* 20px panel body padding               */
+  --space-6:   1.5rem;   /* 24px page gutters                     */
+  --space-8:   2rem;     /* 32px section spacing                  */
+  --space-10:  2.5rem;   /* 40px hero blocks                      */
+  --space-14:  3.5rem;   /* 56px screen breathing room            */
+
+  /* ── Character metrics (monospace columns) ────────────────── */
+  --ch:        1ch;      /* one character cell        @kind spacing */
+  --row:       1.4rem;   /* one terminal line          @kind spacing */
+
+  /* ── Layout ───────────────────────────────────────────────── */
+  --container-max:    1100px;  /* the readable screen width        */
+  --container-narrow: 460px;   /* login / single column            */
+  --header-height:    52px;
+  --menu-width:       320px;
+
+  /* ── Radius — square, except the CRT glass bezel ──────────── */
+  --radius-none:   0;
+  --radius-screen: 10px;   /* the monitor's glass corner           */
+
+  /* ── Border widths ────────────────────────────────────────── */
+  --bw-hair:   1px;
+  --bw-accent: 2px;
+}

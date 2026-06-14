@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Phase 2 — Opération Datalink{% endblock %}
+{% block content %}
+
+<div class="page-heading">Phase 2 — Supplément d'information</div>
+<div class="page-subhead">ordonnance de soit-communiqué</div>
+
+<div class="ascii-frame">
+  <div class="frame-title">▣ Supplément d'information</div>
+  <div class="frame-right">
+    <a href="{{ url_for('preuves2') }}" class="btn btn-secondary"
+       style="font-size: var(--fs-xs); padding: 0;">Saisir les preuves ▸</a>
+  </div>
+  <div class="frame-body" style="padding: var(--space-8);">
+    <div class="prose">{{ content | safe }}</div>
+  </div>
+</div>
+
+{% endblock %}

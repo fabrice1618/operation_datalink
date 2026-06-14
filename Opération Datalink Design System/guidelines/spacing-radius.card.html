@@ -1,0 +1,23 @@
+<!-- @dsCard group="Spacing" viewport="700x190" name="ASCII frames & square corners" subtitle="Box-drawing borders, no radius (except the CRT bezel)" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; background: var(--bg-screen); font-family: var(--font-term); padding: 22px; display: flex; gap: 26px; align-items: center; color: var(--p-text); }
+  .frame { position: relative; border: 1px solid var(--frame-line); background: var(--bg-panel); padding: 20px 26px; }
+  .frame .title { position: absolute; top: 0; left: 12px; transform: translateY(-50%); background: var(--bg-screen); padding: 0 8px; color: var(--p-bright); font-size: 14px; letter-spacing: .14em; text-transform: uppercase; text-shadow: var(--text-glow); }
+  .frame .title span { opacity: .5; }
+  .note { color: var(--p-dim); font-size: 16px; line-height: 1.6; max-width: 260px; }
+  .note b { color: var(--p-bright); }
+</style>
+</head>
+<body class="datalink">
+  <div class="frame">
+    <div class="title"><span>┤</span> PANNEAU <span>├</span></div>
+    <div style="font-size:17px;">contenu</div>
+  </div>
+  <div class="note">Le titre est <b>découpé dans la bordure</b> (┤ … ├). Coins <b>carrés</b> partout — seul le cadre du moniteur CRT a un rayon.</div>
+</body>
+</html>

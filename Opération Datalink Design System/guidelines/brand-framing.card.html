@@ -1,0 +1,22 @@
+<!-- @dsCard group="Brand" viewport="700x180" name="Inverse video & blink" subtitle="How a monochrome terminal shouts" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; background: var(--bg-screen); font-family: var(--font-term); padding: 24px; color: var(--p-text); font-size: 19px; line-height: 1.7; }
+  .inv { background: var(--inverse-bg); color: var(--inverse-fg); padding: 1px 10px; text-shadow: none; }
+  .blink { animation: term-blink 1.06s steps(1) infinite; color: var(--p-bright); }
+  .row { display: flex; gap: 30px; align-items: center; }
+  .n { color: var(--p-faint); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; margin-top: 8px; }
+</style>
+</head>
+<body class="datalink">
+  <div class="row">
+    <div><span class="inv">ACCÈS CLASSIFIÉ</span><div class="n">inverse — sélection / validé</div></div>
+    <div><span class="blink">█ ALERTE</span><div class="n">blink — erreur / attention</div></div>
+  </div>
+  <div style="margin-top:18px;color:var(--p-dim)">&gt;&gt; sélectionnez une option <span class="inv">[3]</span> puis [ENTRÉE]</div>
+</body>
+</html>

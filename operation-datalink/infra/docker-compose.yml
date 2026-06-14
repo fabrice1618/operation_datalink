@@ -138,9 +138,20 @@ services:
       - "8080:5000"
     volumes:
       - ../enonce:/data/enonce:ro
+      - ./capture:/data/captures:ro
       - portal-data:/data
+      # dev — édition des templates à chaud (cf. TEMPLATES_AUTO_RELOAD)
+      - ./images/portal/templates:/opt/portal/templates:ro
+      # dev — code applicatif monté : un simple `restart` suffit (pas de rebuild)
+      - ./images/portal/app.py:/opt/portal/app.py:ro
+      # dev — assets statiques (logo de la navbar) servis à chaud
+      - ./images/portal/static:/opt/portal/static:ro
     environment:
+      SECRET_KEY: "${SECRET_KEY:?SECRET_KEY manquant — copier .env.example en .env}"
+      # dev — recharge les templates modifiés sans reconstruire l'image
+      TEMPLATES_AUTO_RELOAD: "1"
       DASHBOARD_TOKEN: "prof2024"
+      ACCESS_CODE: "DATALINK-2026"
       FLAG_P1: "DATALINK{RDV_QUAI17_14MAI_0300}"
       FLAG_P2: "DATALINK{4213_CLIENTS_RGPD_EXFILTRES}"
       FLAG_P3: "DATALINK{RANCON_50000E_BTC}"

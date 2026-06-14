@@ -1,0 +1,74 @@
+<!-- @template name="Datalink Portal Page" description="Authenticated portal scaffold: classified header, page heading, content card — built on the Datalink components." -->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Opération Datalink — Portail</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="./ds-base.js"></script>
+</head>
+<body class="datalink">
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+  const NS = 'OpRationDatalinkDesignSystem_63bf2d';
+
+  function mount() {
+    const DS = window[NS];
+    if (!DS) { setTimeout(mount, 30); return; }  // wait for the async-loaded bundle
+    const { Button, AsciiFrame, PageHeading, Badge } = DS;
+
+    function Page() {
+      return (
+        <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+          {/* ── Terminal title bar ─────────────────────────────── */}
+          <div style={{
+            borderBottom: '1px solid var(--frame-line)', padding: '0 1.5rem',
+            height: 'var(--header-height)', display: 'flex', alignItems: 'center',
+            justifyContent: 'space-between', gap: '1.5rem',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1ch' }}>
+              <span style={{ color: 'var(--p-max)' }}>&#9612;</span>
+              <span style={{
+                color: 'var(--p-bright)', fontSize: 'var(--fs-md)', letterSpacing: '.1em',
+                textShadow: 'var(--text-glow-strong)', whiteSpace: 'nowrap',
+              }}>OP. DATALINK</span>
+            </div>
+            <span style={{
+              border: '1px solid var(--frame-line)', color: 'var(--p-dim)',
+              fontSize: 'var(--fs-xs)', letterSpacing: '.1em', padding: '.1rem .6ch',
+            }}>EQ:<span style={{ color: 'var(--p-bright)' }}>EQUIPE-DELTA</span></span>
+          </div>
+
+          {/* ── Content ────────────────────────────────────────── */}
+          <main style={{
+            flex: 1, maxWidth: 'var(--container-max)', width: '100%', margin: '0 auto',
+            padding: '1.75rem 1.5rem 3.5rem',
+          }}>
+            <PageHeading subhead="Remplacez ce contenu par votre écran.">
+              Nouveau module
+            </PageHeading>
+            <div style={{ marginTop: '1.75rem' }}>
+              <AsciiFrame title="Panneau" right={<Badge variant="info">prêt</Badge>}>
+                <p style={{ margin: '0 0 1rem', color: 'var(--p-text)', fontSize: 'var(--fs-sm)', lineHeight: 1.55 }}>
+                  <span style={{ color: 'var(--p-faint)' }}>&gt;&gt;</span> ce gabarit charge le système
+                  de design Opération Datalink via <code style={{ color: 'var(--p-bright)' }}>ds-base.js</code>.
+                  Composez votre écran avec les composants du namespace.
+                </p>
+                <Button variant="primary" icon="▸">Action principale</Button>
+              </AsciiFrame>
+            </div>
+          </main>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<Page />);
+  }
+  mount();
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Saisine — Opération Datalink{% endblock %}
+{% block content %}
+
+<div class="page-heading">Saisine du cabinet d'instruction</div>
+<div class="page-subhead">réquisitoire introductif · scellés numériques</div>
+
+<!-- Réquisitoire introductif -->
+<div class="ascii-frame">
+  <div class="frame-title">▣ Réquisitoire introductif</div>
+  <div class="frame-body" style="padding: var(--space-8);">
+    <div class="prose">{{ content | safe }}</div>
+  </div>
+</div>
+
+<style>
+  /* Le réquisitoire occupe toute la largeur de la colonne (annule le
+     plafond de lecture global de 72ch — propre à cette page). */
+  .main-content .prose { max-width: none; }
+</style>
+{% endblock %}

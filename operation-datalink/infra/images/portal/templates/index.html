@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Identification — Opération Datalink{% endblock %}
+{% block title %}Accès — Opération Datalink{% endblock %}
 {% block content %}
 
 <div style="max-width: var(--container-narrow); margin: 3.5rem auto;">
@@ -16,46 +16,34 @@
       font-size: var(--fs-2xl); letter-spacing: .08em; line-height: 1;
     ">OP. DATALINK</div>
     <div class="text-dim" style="font-size: var(--fs-sm); letter-spacing: .1em; margin-top: .4rem;">
-      <span class="text-faint">//</span> portail d'investigation réseau
+      <span class="text-faint">//</span> instruction judiciaire — investigation réseau
     </div>
   </div>
 
-  <!-- Cadre d'identification -->
+  <!-- Cadre du code d'accès -->
   <div class="ascii-frame">
-    <div class="frame-title">Identification</div>
+    <div class="frame-title">Accès au dossier</div>
     <div class="frame-body" style="padding: var(--space-8) var(--space-5);">
 
-      <p class="text-dim" style="font-size: var(--fs-sm); margin-bottom: var(--space-5);">
-        <span class="text-faint">&gt;&gt;</span> Identifiez votre équipe pour ouvrir une session.
+      <p class="text-dim" style="font-size: var(--fs-sm); margin-bottom: var(--space-5); line-height: 1.55;">
+        <span class="text-faint">&gt;&gt;</span> Vous accédez au portail d'investigation numérique placé
+        sous autorité judiciaire. Votre équipe assiste le juge d'instruction dans l'analyse d'une
+        intrusion sur le réseau NordExport (<span class="text-bright">10.13.37.0/24</span>).
       </p>
 
-      <form method="post" action="{{ url_for('set_group') }}">
+      <form method="post" action="{{ url_for('do_access') }}">
         <div style="margin-bottom: var(--space-5);">
-          <label class="form-label" for="group_name">Login équipe</label>
+          <label class="form-label" for="access_code">Code d'accès</label>
           <div class="prompt-field">
             <span class="prompt">›</span>
-            <input type="text" id="group_name" name="group_name"
-                   placeholder="ex: Equipe-Delta"
-                   value="{{ group or '' }}" maxlength="50" required autofocus autocomplete="off"
-                   spellcheck="false">
+            <input type="text" id="access_code" name="access_code"
+                   placeholder="DATALINK-..."
+                   required autofocus autocomplete="off" spellcheck="false">
           </div>
-          <div class="form-hint">// ce nom identifie votre équipe pour les soumissions</div>
+          <div class="form-hint">// code communiqué par le magistrat instructeur</div>
         </div>
-        <button type="submit" class="btn btn-block">▸ Accéder au portail</button>
+        <button type="submit" class="btn btn-block">▸ Ouvrir la session</button>
       </form>
-
-      {% if group %}
-      <div class="sep"></div>
-      <p style="font-size: var(--fs-sm); margin-bottom: var(--space-4);">
-        <span class="text-faint">&gt;&gt;</span> session active —
-        <span class="term-inverse" style="padding: 0 .5ch;">{{ group }}</span>
-      </p>
-      <div style="display: flex; gap: 1ch; justify-content: center; flex-wrap: wrap;">
-        <a href="{{ url_for('enonce_list') }}" class="btn btn-secondary">Énoncé</a>
-        <a href="{{ url_for('flags') }}"       class="btn btn-secondary">Flags</a>
-        <a href="{{ url_for('pv') }}"          class="btn btn-secondary">PV</a>
-      </div>
-      {% endif %}
 
     </div>
   </div>

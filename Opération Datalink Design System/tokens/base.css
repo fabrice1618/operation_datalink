@@ -1,0 +1,114 @@
+/* ──────────────────────────────────────────────────────────────
+   Opération Datalink — CRT screen base
+   Give <body> class "datalink" to become a cathode-ray terminal:
+   phosphor text on dark glass, scanlines, flicker, vignette, and
+   the terminal utility classes (inverse video, blink, cursor).
+   ────────────────────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body.datalink {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg-screen);
+  color: var(--p-text);
+  font-family: var(--font-term);
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  letter-spacing: .01em;
+  text-shadow: var(--text-glow);
+  position: relative;
+  overflow-x: hidden;
+  -webkit-font-smoothing: none;
+  text-rendering: geometricPrecision;
+}
+
+/* Screen-edge vignette + faint curvature darkening */
+body.datalink {
+  background:
+    radial-gradient(125% 125% at 50% 50%,
+      transparent 58%,
+      rgba(0,0,0,var(--vignette-dark)) 100%),
+    var(--bg-screen);
+  background-attachment: fixed;
+}
+
+/* Scanlines — fine horizontal raster */
+body.datalink::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0,0,0,var(--scanline-dark)) 0px,
+    rgba(0,0,0,var(--scanline-dark)) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+/* Flicker + a slow rolling brightness band */
+body.datalink::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background: linear-gradient(rgba(var(--phosphor-rgb), .020), transparent 12%);
+  opacity: var(--crt-intensity);
+  animation: crt-flicker .14s steps(3) infinite, crt-roll 9s linear infinite;
+}
+
+@keyframes crt-flicker {
+  0%   { opacity: calc(.9 * var(--crt-intensity)); }
+  100% { opacity: calc(1 * var(--crt-intensity)); }
+}
+@keyframes crt-roll {
+  0%   { background-position: 0 -100vh; }
+  100% { background-position: 0 100vh; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.datalink::after { animation: none; }
+}
+
+/* Content above the raster overlays */
+body.datalink > * { position: relative; z-index: 1; }
+
+/* ── Terminal utility classes ─────────────────────────────────── */
+
+/* Inverse video — the monochrome "highlight" */
+.term-inverse {
+  background: var(--inverse-bg);
+  color: var(--inverse-fg);
+  text-shadow: none;
+}
+
+/* Blinking element (errors, alerts, attention) */
+.term-blink { animation: term-blink var(--blink-dur) steps(1) infinite; }
+@keyframes term-blink {
+  0%, 49.9% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .term-blink { animation: none; }
+}
+
+/* Block cursor appended after a line */
+.term-cursor::after {
+  content: '\2588';            /* █ */
+  margin-left: .1ch;
+  animation: term-blink var(--blink-dur) steps(1) infinite;
+}
+
+/* Bright / peak phosphor text */
+.term-bright { color: var(--p-bright); text-shadow: var(--text-glow-strong); }
+
+/* Error shake (kept for input rejection) */
+@keyframes term-shake {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-3px); }
+  75%      { transform: translateX(3px); }
+}

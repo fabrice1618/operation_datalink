@@ -18,8 +18,8 @@ qu'une société-écran. Lors d'une perquisition, les services techniques ont
 réalisé deux captures du trafic réseau de l'entreprise (réseau interne
 `10.13.37.0/24`), placées sous scellés :
 
-- **Scellé n° 01** — `scelle-01_serveur-interne.pcap` (sonde sur le serveur interne)
-- **Scellé n° 02** — `scelle-02_passerelle.pcap` (sonde sur la passerelle vers l'extérieur)
+- **Scellé n° 01** — [`scelle-01_serveur-interne.pcap` ↓](/captures/scelle-01_serveur-interne.pcap) (sonde sur le serveur interne)
+- **Scellé n° 02** — [`scelle-02_passerelle.pcap` ↓](/captures/scelle-02_passerelle.pcap) (sonde sur la passerelle vers l'extérieur)
 
 Je vous confie ces scellés. **Votre mission : qualifier les infractions et
 m'en rapporter les preuves matérielles.** Chaque preuve devra être :

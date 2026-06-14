@@ -1,0 +1,10 @@
+/* ──────────────────────────────────────────────────────────────
+   Opération Datalink — Webfonts
+   VT323         → THE terminal face. A single-weight bitmap-style
+                   monospace that reads like a CRT character ROM.
+                   Used for everything; "weight" comes from phosphor
+                   brightness + glow, never from font-weight.
+   Share Tech Mono → fallback only (metrics-compatible monospace).
+   Both are free Google Fonts; no local binaries required.
+   ────────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap');

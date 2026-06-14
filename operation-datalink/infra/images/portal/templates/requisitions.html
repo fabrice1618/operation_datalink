@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Réquisitions — Opération Datalink{% endblock %}
+{% block content %}
+
+<div class="page-heading">Réquisitions du juge</div>
+<div class="page-subhead">phase 1 — analyse des scellés</div>
+
+<div class="ascii-frame">
+  <div class="frame-title">▣ Réquisitions — Phase 1</div>
+  <div class="frame-right">
+    <a href="{{ url_for('preuves') }}" class="btn btn-secondary"
+       style="font-size: var(--fs-xs); padding: 0;">Saisir les preuves ▸</a>
+  </div>
+  <div class="frame-body" style="padding: var(--space-8);">
+    <div class="prose">{{ content | safe }}</div>
+  </div>
+</div>
+
+{% endblock %}

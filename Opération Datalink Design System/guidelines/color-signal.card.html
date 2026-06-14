@@ -1,0 +1,28 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Green vs Amber phosphor" subtitle="Same system, one hue — set data-phosphor" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; font-family: var(--font-term); display: flex; }
+  .half { flex: 1; padding: 20px; background: var(--bg-screen); color: var(--p-text); }
+  .ttl { color: var(--p-bright); font-size: 17px; letter-spacing: .14em; text-transform: uppercase; text-shadow: var(--text-glow); }
+  .ln { font-size: 16px; margin-top: 8px; }
+  .swatch { display: inline-block; width: 16px; height: 16px; background: var(--p-max); vertical-align: middle; margin-right: 8px; box-shadow: var(--box-glow); }
+  .tag { font-size: 12px; color: var(--p-faint); letter-spacing: .1em; margin-top: 12px; }
+</style>
+</head>
+<body>
+  <div class="half">
+    <div class="ttl"><span class="swatch"></span>Phosphore vert</div>
+    <div class="ln">A:\&gt; CONNEXION ETABLIE_</div>
+    <div class="tag">:root · P1 · 70,255,120</div>
+  </div>
+  <div class="half" data-phosphor="amber">
+    <div class="ttl"><span class="swatch"></span>Phosphore ambre</div>
+    <div class="ln">A:\&gt; CONNEXION ETABLIE_</div>
+    <div class="tag">[data-phosphor="amber"] · P3 · 255,176,0</div>
+  </div>
+</body>
+</html>

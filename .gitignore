@@ -4,3 +4,8 @@ __pycache__/
 
 # Claude Code — réglages locaux par-machine (autorisations, etc.)
 .claude/settings.local.json
+
+# Secrets d'environnement (le modèle .env.example reste versionné)
+.env
+Opération Datalink Design System.zip
+*.pcap

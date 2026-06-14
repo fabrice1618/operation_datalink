@@ -1,0 +1,22 @@
+<!-- @dsCard group="Type" viewport="700x170" name="Terminal text & system voice" subtitle="Prompts, // comments, the >> system line" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; background: var(--bg-screen); font-family: var(--font-term); padding: 20px; color: var(--p-text); font-size: 19px; line-height: 1.5; }
+  .prompt { color: var(--p-dim); }
+  .bright { color: var(--p-bright); text-shadow: var(--text-glow); }
+  .sys { color: var(--p-dim); }
+  .cur::after { content: '\2588'; animation: term-blink 1.06s steps(1) infinite; margin-left: 1px; }
+  .cmt { color: var(--p-faint); }
+</style>
+</head>
+<body class="datalink">
+  <div><span class="prompt">A:\&gt;</span> <span class="bright">login</span> equipe-delta</div>
+  <div class="sys">&gt;&gt; identification acceptée</div>
+  <div class="cmt">// dossier chargé — 4 documents</div>
+  <div><span class="prompt">FLAG&gt;</span> <span class="cur">DATALINK{</span></div>
+</body>
+</html>
