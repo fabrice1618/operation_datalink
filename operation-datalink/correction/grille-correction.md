@@ -8,6 +8,13 @@ timeline, qualification juridique), 4 pts pour la phase 2.
 > qu'il *sait l'exploiter* (localisation + raisonnement). Ne validez le flag que
 > s'il est correctement **localisé**.
 
+> **Bonus « voie experte » (P7).** L'énoncé propose chaque réquisition en deux voies
+> (experte = sans indice, guidée = avec indice). Accordez **+0,5 pt par preuve** dont
+> le jeton a été extrait **et correctement localisé sans avoir lu l'indice** (déclaré
+> par le binôme sur le PV — fonctionnement déclaratif). **Plafond : +2,5 pts.** Le
+> socle (jeton + localisation) reste acquis même si l'indice a été lu : la voie guidée
+> ne pénalise pas, elle ne donne simplement pas le bonus.
+
 ---
 
 ## Preuve P1 — Coordination du trafic *(scellé 01)*

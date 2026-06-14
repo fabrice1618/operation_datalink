@@ -113,7 +113,7 @@ ping) accompagnée d'une fiche pas-à-pas : *ouvrir le pcap → appliquer le fil
 « d'entraînement » jetable (`DATALINK{PRISE_EN_MAIN_OK}`) pour valider que chacun
 maîtrise les 4 gestes avant la vraie enquête. Réutilisable d'une promo à l'autre.
 
-### P7. Paliers de difficulté par preuve *(impact ★★, effort ★)*
+### P7. Paliers de difficulté par preuve *(impact ★★, effort ★)* — ✅ traité
 **Intention :** servir à la fois les débutants et les rapides.
 **Proposition :** dans `01_sujet-phase1.md`, présenter chaque réquisition en deux
 niveaux : **« guidé »** (l'indice actuel) et **« expert »** (énoncé minimal, sans
@@ -253,7 +253,7 @@ assertions. Sécurise les mises à jour futures (dont celles de ce document).
 | P18 | Antisèche Wireshark | ★★ | ★ | **Palier 1** |
 | P20 | `make verify` (CI du TP) | ★★ | ★ | **Palier 1** |
 | P2  | Indices à coût | ★★ | ★ | Palier 1 |
-| P7  | Paliers guidé/expert | ★★ | ★ | Palier 1 |
+| P7  | Paliers guidé/expert | ★★ | ★ | Palier 1 ✅ |
 | P9  | Bruit de fond + faux flag | ★★★ | ★★ | **Palier 2** |
 | P12 | ARP poisoning réel | ★★★ | ★★ | **Palier 2** |
 | P5  | Fil rouge (déverrouillage souple) | ★★ | ★★ | Palier 2 |
