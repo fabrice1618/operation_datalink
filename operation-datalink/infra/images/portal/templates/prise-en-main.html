@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Prise en main — Opération Datalink{% endblock %}
+{% block content %}
+
+<div class="page-heading">Réquisition 0 — Prise en main</div>
+<div class="page-subhead">calibrage des outils avant les scellés — équipe : {{ group }}</div>
+
+<div class="ascii-frame">
+  <div class="frame-title">▣ Fiche guidée</div>
+  <div class="frame-right">
+    <a href="{{ url_for('download_capture', name=training_pcap) }}" class="btn btn-secondary"
+       style="font-size: var(--fs-xs); padding: 0;">↓ scellé d'entraînement</a>
+  </div>
+  <div class="frame-body" style="padding: var(--space-8);">
+    <div class="prose">{{ content | safe }}</div>
+  </div>
+</div>
+
+<!-- Renvois vers les antisèches -->
+<div style="display: flex; gap: 1ch; flex-wrap: wrap; margin-top: var(--space-6);">
+  <a href="{{ url_for('aide_wireshark') }}" class="btn btn-secondary">▣ Antisèche Wireshark</a>
+  <a href="{{ url_for('aide_tcpdump') }}" class="btn btn-secondary">▣ Antisèche tcpdump</a>
+</div>
+
+<!-- Auto-vérification (jeton d'entraînement, non noté) -->
+<div class="ascii-frame" style="margin-top: var(--space-8);">
+  <div class="frame-title">▣ Auto-vérification</div>
+  <div class="frame-right">
+    {% if found %}
+    <span class="badge badge-success" id="r0-badge">OK</span>
+    {% else %}
+    <span class="badge badge-pending" id="r0-badge">··</span>
+    {% endif %}
+  </div>
+  <div class="frame-body" id="r0-body">
+    <div class="text-faint" style="font-size: var(--fs-xs); margin-bottom: .5rem;">// scellé d'entraînement — non noté</div>
+    {% if found %}
+    <div class="text-bright" style="font-size: var(--fs-sm);">
+      ✓ Prise en main validée. Vous êtes prêts pour les scellés.
+    </div>
+    {% else %}
+    <div style="display: flex; gap: 1ch; align-items: stretch;">
+      <div class="prompt-field" style="flex: 1;">
+        <span class="prompt">JETON›</span>
+        <input type="text" id="r0-input"
+               placeholder="DATALINK{...}"
+               autocomplete="off" spellcheck="false">
+      </div>
+      <button class="btn" id="r0-btn" style="flex-shrink: 0;">▸</button>
+    </div>
+    <div id="r0-feedback" style="min-height: 1.4rem; font-size: var(--fs-xs); margin-top: .35rem;"></div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function r0Submit() {
+  const input    = document.getElementById('r0-input');
+  const feedback = document.getElementById('r0-feedback');
+  const flag = input.value.trim();
+  if (!flag) return;
+
+  input.disabled = true;
+  feedback.innerHTML = '<span class="text-faint">// vérification du jeton...</span>';
+
+  try {
+    const res  = await fetch('/api/flag', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ flag }),
+    });
+    const data = await res.json();
+
+    if (data.correct) {
+      const badge = document.getElementById('r0-badge');
+      badge.className   = 'badge badge-success';
+      badge.textContent = 'OK';
+      document.getElementById('r0-body').innerHTML =
+        '<div class="text-faint" style="font-size: var(--fs-xs); margin-bottom: .5rem;">' +
+        '// scellé d\'entraînement — non noté</div>' +
+        '<div class="text-bright" style="font-size: var(--fs-sm);">' +
+        '&gt;&gt; PRISE EN MAIN VALIDÉE — vous êtes prêts pour les scellés.</div>';
+    } else {
+      input.disabled = false;
+      const well = input.closest('.prompt-field');
+      well.classList.add('error');
+      setTimeout(() => well.classList.remove('error'), 400);
+      feedback.innerHTML = '<span class="text-bright term-blink">// jeton incorrect — réessayez</span>';
+      setTimeout(() => {
+        if (feedback.textContent.includes('incorrect')) feedback.innerHTML = '';
+      }, 3000);
+    }
+  } catch (e) {
+    input.disabled = false;
+    feedback.innerHTML = '<span class="text-bright term-blink">// erreur réseau</span>';
+  }
+}
+
+(function () {
+  const btn   = document.getElementById('r0-btn');
+  const input = document.getElementById('r0-input');
+  if (btn)   btn.addEventListener('click', r0Submit);
+  if (input) input.addEventListener('keydown', e => { if (e.key === 'Enter') r0Submit(); });
+})();
+</script>
+{% endblock %}

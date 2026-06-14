@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} — Opération Datalink{% endblock %}
+{% block content %}
+
+<div class="page-heading">{{ title }}</div>
+<div class="page-subhead">{{ subhead }}</div>
+
+<div class="ascii-frame">
+  <div class="frame-title">▣ {{ title }}</div>
+  <div class="frame-right">
+    <a href="{{ url_for('prise_en_main') }}" class="btn btn-secondary"
+       style="font-size: var(--fs-xs); padding: 0;">◂ Prise en main</a>
+  </div>
+  <div class="frame-body" style="padding: var(--space-8);">
+    <div class="prose">{{ content | safe }}</div>
+  </div>
+</div>
+
+{% endblock %}

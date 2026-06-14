@@ -35,6 +35,7 @@ DASHBOARD_TOKEN = os.environ.get("DASHBOARD_TOKEN", "prof2024")
 ACCESS_CODE = os.environ.get("ACCESS_CODE", "DATALINK-2026")
 
 FLAGS = {
+    "P0": os.environ.get("FLAG_P0", ""),
     "P1": os.environ.get("FLAG_P1", ""),
     "P2": os.environ.get("FLAG_P2", ""),
     "P3": os.environ.get("FLAG_P3", ""),
@@ -44,6 +45,7 @@ FLAGS = {
 }
 
 PHASE_LABELS = {
+    "P0": "Réquisition 0 — Prise en main (entraînement)",
     "P1": "Réquisition 1 — Coordination du trafic (HTTP)",
     "P2": "Réquisition 2 — Exfiltration base clients (FTP)",
     "P3": "Réquisition 3 — Menaces et chantage (SMTP)",
@@ -68,6 +70,7 @@ GREEK_NAMES = {name for name, _ in GREEK_TEAMS}
 
 # Scellés numériques téléchargeables sur l'écran de saisine.
 CAPTURES = [
+    ("scelle-00_formation.pcap", "Scellé d'entraînement — prise en main"),
     ("scelle-01_serveur-interne.pcap", "Scellé n° 01 — sonde serveur interne"),
     ("scelle-02_passerelle.pcap", "Scellé n° 02 — sonde passerelle"),
 ]
@@ -76,6 +79,7 @@ CAPTURE_NAMES = {name for name, _ in CAPTURES}
 # Le pipeline judiciaire (étapes ordonnées) — pilote le stepper et le footer.
 PIPELINE = [
     ("saisine",      "Saisine"),
+    ("prise_en_main", "Prise en main"),
     ("requisitions", "Réquisitions"),
     ("preuves",      "Preuves P1"),
     ("phase2",       "Phase 2"),
@@ -261,6 +265,49 @@ def download_capture(name):
     if name not in CAPTURE_NAMES:
         abort(404)
     return send_from_directory(CAPTURE_DIR, name, as_attachment=True)
+
+
+@app.route("/prise-en-main")
+def prise_en_main():
+    redir = require_group()
+    if redir:
+        return redir
+    found = "P0" in found_phases(session["group_name"])
+    return render_template(
+        "prise-en-main.html",
+        group=session["group_name"],
+        content=render_md("requisition-0-prise-en-main.md"),
+        training_pcap="scelle-00_formation.pcap",
+        found=found,
+    )
+
+
+@app.route("/aide/wireshark")
+def aide_wireshark():
+    redir = require_group()
+    if redir:
+        return redir
+    return render_template(
+        "guide.html",
+        group=session["group_name"],
+        title="Antisèche Wireshark",
+        subhead="aide-mémoire — analyse réseau",
+        content=render_md("aide-wireshark.md"),
+    )
+
+
+@app.route("/aide/tcpdump")
+def aide_tcpdump():
+    redir = require_group()
+    if redir:
+        return redir
+    return render_template(
+        "guide.html",
+        group=session["group_name"],
+        title="Antisèche tcpdump",
+        subhead="aide-mémoire — capture en ligne de commande",
+        content=render_md("aide-tcpdump.md"),
+    )
 
 
 @app.route("/requisitions")
