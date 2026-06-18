@@ -5,8 +5,7 @@
 <div class="page-heading">{{ title }}</div>
 <div class="page-subhead">équipe : {{ group }}</div>
 
-<!-- Barre de progression ASCII -->
-{% set cells = 24 %}
+<!-- Barre de progression ASCII (cells fourni par la vue : visible aussi dans block scripts) -->
 {% set total = phases | length %}
 {% set count = found | length %}
 {% set filled = ((count / total * cells) | round | int) if total else 0 %}
@@ -92,7 +91,22 @@ async function submitFlag(phase) {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ flag }),
     });
-    const data = await res.json();
+
+    // Réponse JSON attendue ; un proxy/erreur serveur peut renvoyer du non-JSON.
+    let data = {};
+    try { data = await res.json(); } catch (_) { data = {}; }
+
+    // Distinguer une vraie erreur (session, requête, serveur) d'un flag refusé :
+    // sans ça, tout échec s'affichait à tort comme « jeton incorrect ».
+    if (!res.ok) {
+      input.disabled = false;
+      let msg;
+      if (res.status === 401)      msg = '// SESSION EXPIRÉE — rechargez la page et reconnectez votre équipe';
+      else if (res.status === 400) msg = '// requête invalide — ' + (data.error || 'jeton vide');
+      else                         msg = '// erreur serveur (' + res.status + ') — réessayez';
+      feedback.innerHTML = '<span class="text-bright term-blink">' + msg + '</span>';
+      return;
+    }
 
     if (data.correct) {
       const badge = document.getElementById('badge-' + phase);

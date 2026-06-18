@@ -403,7 +403,7 @@ def preuves():
     return render_template(
         "preuves.html",
         title="Saisie des preuves — Phase 1",
-        phases=phases, found=found, group=group, phase_num=1,
+        phases=phases, found=found, group=group, phase_num=1, cells=24,
     )
 
 
@@ -430,7 +430,7 @@ def preuves2():
     return render_template(
         "preuves.html",
         title="Saisie des preuves — Phase 2",
-        phases=phases, found=found, group=group, phase_num=2,
+        phases=phases, found=found, group=group, phase_num=2, cells=24,
     )
 
 
