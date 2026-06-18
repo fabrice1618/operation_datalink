@@ -15,6 +15,10 @@ networks:
       config:
         - subnet: 10.13.37.0/24
           gateway: 10.13.37.1
+  # Reseau partage du reverse proxy (cree par le repo reverse_proxy).
+  reverse-proxy-net:
+    name: reverse-proxy-net
+    external: true
 
 services:
 
@@ -134,6 +138,11 @@ services:
     build: ./images/portal
     image: datalink-portal
     container_name: datalink-portal
+    # default : projet datalink ; reverse-proxy-net : expose au reverse proxy
+    # (nginx atteint datalink-portal:5000 sur ce reseau partage).
+    networks:
+      - default
+      - reverse-proxy-net
     ports:
       - "8080:5000"
     volumes:
