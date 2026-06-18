@@ -89,7 +89,7 @@ async function submitFlag(phase) {
     const res  = await fetch('/api/flag', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ flag }),
+      body: JSON.stringify({ flag, phase }),
     });
 
     // Réponse JSON attendue ; un proxy/erreur serveur peut renvoyer du non-JSON.

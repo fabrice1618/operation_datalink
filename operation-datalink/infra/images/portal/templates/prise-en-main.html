@@ -70,7 +70,7 @@ async function r0Submit() {
     const res  = await fetch('/api/flag', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ flag }),
+      body: JSON.stringify({ flag, phase: 'P0' }),
     });
     const data = await res.json();
 

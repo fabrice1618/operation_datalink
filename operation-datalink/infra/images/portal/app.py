@@ -146,17 +146,17 @@ def get_or_create_group(name: str) -> int:
         return cur.lastrowid or 0
 
 
-def validate_flag(flag_text: str) -> str | None:
-    """Retourne la phase (P0..P6) si le flag est correct, sinon None.
+def validate_flag(flag_text: str, phase: str) -> bool:
+    """Vrai si le flag correspond à l'empreinte attendue pour CETTE réquisition.
 
-    La comparaison se fait sur le SHA-256 : aucun flag en clair n'est conservé
-    côté serveur au-delà de la requête courante.
+    Chaque preuve est rattachée à une réquisition précise : on compare le
+    SHA-256 du flag soumis à l'empreinte de la phase ciblée, et à elle seule.
+    Un flag correct mais versé dans la mauvaise case — ou réutilisé d'une case
+    à l'autre — est donc rejeté. Aucun flag en clair n'est conservé côté
+    serveur au-delà de la requête courante.
     """
-    digest = sha256_hex(flag_text.strip())
-    for phase, expected in FLAG_HASHES.items():
-        if expected and digest == expected:
-            return phase
-    return None
+    expected = FLAG_HASHES.get(phase)
+    return bool(expected) and sha256_hex(flag_text.strip()) == expected
 
 
 def allowed_file(filename: str) -> bool:
@@ -440,26 +440,30 @@ def api_flag():
         return jsonify({"error": "Groupe non défini"}), 401
     data = request.get_json(force=True, silent=True) or {}
     flag_text = (data.get("flag") or "").strip()
+    phase = (data.get("phase") or "").strip().upper()
     if not flag_text:
         return jsonify({"error": "Flag vide"}), 400
+    # La preuve doit cibler une réquisition connue : sans phase explicite, on ne
+    # peut pas vérifier qu'elle est versée dans la bonne case.
+    if phase not in PHASE_LABELS:
+        return jsonify({"error": "Réquisition inconnue"}), 400
 
     group_name = session["group_name"]
     group_id = get_or_create_group(group_name)
 
-    phase = validate_flag(flag_text)
-    correct = phase is not None
+    correct = validate_flag(flag_text, phase)
 
     # On n'archive jamais le flag soumis en clair : seul son SHA-256 est stocké
     # (la colonne flag_text conserve désormais une empreinte, cf. init_db).
     with get_db() as conn:
         already = conn.execute(
             "SELECT id FROM flag_submissions WHERE group_id = ? AND correct = 1 AND phase = ?",
-            (group_id, phase or ""),
+            (group_id, phase),
         ).fetchone()
         if not already:
             conn.execute(
                 "INSERT INTO flag_submissions (group_id, phase, flag_text, correct) VALUES (?,?,?,?)",
-                (group_id, phase or "?", sha256_hex(flag_text), int(correct)),
+                (group_id, phase, sha256_hex(flag_text), int(correct)),
             )
 
     if correct:
