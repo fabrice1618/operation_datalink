@@ -49,6 +49,11 @@ ALLOWED_EXTENSIONS = {"pdf", "txt", "md", "odt", "docx"}
 DASHBOARD_TOKEN = os.environ.get("DASHBOARD_TOKEN", "prof2024")
 ACCESS_CODE = os.environ.get("ACCESS_CODE", "DATALINK-2026")
 
+# Scénario à deux phases. La phase 2 (réquisition P6) exige l'infra Docker live,
+# inaccessible à certains étudiants : désactivée par défaut, le portail se limite
+# alors à la phase 1 (analyse des scellés PCAP). Activer avec PHASE2_ENABLED=1.
+PHASE2_ENABLED = os.environ.get("PHASE2_ENABLED", "0") == "1"
+
 def sha256_hex(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
@@ -104,15 +109,22 @@ CAPTURES = [
 CAPTURE_NAMES = {name for name, _ in CAPTURES}
 
 # Le pipeline judiciaire (étapes ordonnées) — pilote le stepper et le footer.
+# Les étapes « Phase 2 » ne sont insérées que si le scénario à deux phases est
+# activé (cf. PHASE2_ENABLED) ; sinon le parcours s'arrête à la phase 1.
 PIPELINE = [
-    ("saisine",      "Saisine"),
+    ("saisine",       "Saisine"),
     ("prise_en_main", "Prise en main"),
-    ("requisitions", "Réquisitions"),
-    ("preuves",      "Preuves P1"),
-    ("phase2",       "Phase 2"),
-    ("preuves2",     "Preuves P2"),
-    ("pv",           "Procès-verbal"),
-    ("fin",          "Fin"),
+    ("requisitions",  "Réquisitions"),
+    ("preuves",       "Preuves P1" if PHASE2_ENABLED else "Preuves"),
+]
+if PHASE2_ENABLED:
+    PIPELINE += [
+        ("phase2",   "Phase 2"),
+        ("preuves2", "Preuves P2"),
+    ]
+PIPELINE += [
+    ("pv",  "Procès-verbal"),
+    ("fin", "Fin"),
 ]
 
 
@@ -199,8 +211,9 @@ def found_phases(group_name: str) -> set:
     return {r["phase"] for r in rows if r["correct"]}
 
 
-# Preuves comptabilisées au classement (l'entraînement P0 reste hors-concours).
-SCORED_PHASES = PHASE_GROUPS[1] + PHASE_GROUPS[2]   # P1..P6
+# Preuves comptabilisées au classement (l'entraînement P0 reste hors-concours ;
+# la phase 2 / P6 n'entre au score que si le scénario à deux phases est activé).
+SCORED_PHASES = PHASE_GROUPS[1] + (PHASE_GROUPS[2] if PHASE2_ENABLED else [])
 
 
 def gather_solves():
@@ -424,6 +437,8 @@ def preuves():
 
 @app.route("/phase2")
 def phase2():
+    if not PHASE2_ENABLED:
+        abort(404)
     redir = require_group()
     if redir:
         return redir
@@ -436,6 +451,8 @@ def phase2():
 
 @app.route("/preuves2")
 def preuves2():
+    if not PHASE2_ENABLED:
+        abort(404)
     redir = require_group()
     if redir:
         return redir
@@ -600,15 +617,21 @@ def fin():
         ).fetchone()["n"]
     p1_found = found & set(PHASE_GROUPS[1])
     p2_found = found & set(PHASE_GROUPS[2])
+    # En mode une phase, la phase 2 / P6 disparaît du récapitulatif des scellés.
+    phases = dict(PHASE_LABELS)
+    if not PHASE2_ENABLED:
+        for p in PHASE_GROUPS[2]:
+            phases.pop(p, None)
     return render_template(
         "fin.html",
         group=group,
-        phases=PHASE_LABELS,
+        phases=phases,
         phase_groups=PHASE_GROUPS,
         found=found,
         p1_count=len(p1_found), p1_total=len(PHASE_GROUPS[1]),
         p2_count=len(p2_found), p2_total=len(PHASE_GROUPS[2]),
         pv_count=pv_count,
+        phase2_enabled=PHASE2_ENABLED,
     )
 
 

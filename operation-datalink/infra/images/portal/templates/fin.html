@@ -10,15 +10,17 @@
 {% set complete = (count_preuves == total_preuves) and (pv_count > 0) %}
 
 <!-- Bandeau de statistiques -->
-<div class="stats-grid">
+<div class="stats-grid{% if not phase2_enabled %} stats-grid--2{% endif %}">
   <div class="stat-card">
     <div class="value">{{ '%02d' | format(p1_count) }}<span class="text-faint" style="font-size: var(--fs-md);">/{{ '%02d' | format(p1_total) }}</span></div>
-    <div class="label">Preuves Phase 1</div>
+    <div class="label">{{ 'Preuves Phase 1' if phase2_enabled else 'Preuves' }}</div>
   </div>
+  {% if phase2_enabled %}
   <div class="stat-card">
     <div class="value">{{ '%02d' | format(p2_count) }}<span class="text-faint" style="font-size: var(--fs-md);">/{{ '%02d' | format(p2_total) }}</span></div>
     <div class="label">Preuves Phase 2</div>
   </div>
+  {% endif %}
   <div class="stat-card">
     <div class="value">{{ '%02d' | format(pv_count) }}</div>
     <div class="label">PV déposés</div>
@@ -87,6 +89,7 @@
     display: grid; grid-template-columns: repeat(3, 1fr);
     gap: var(--space-4); margin-bottom: var(--space-8);
   }
+  .stats-grid--2 { grid-template-columns: repeat(2, 1fr); }
   @media (max-width: 600px) { .stats-grid { grid-template-columns: 1fr; } }
 </style>
 {% endblock %}

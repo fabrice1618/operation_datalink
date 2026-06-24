@@ -161,6 +161,10 @@ services:
       TEMPLATES_AUTO_RELOAD: "1"
       DASHBOARD_TOKEN: "prof2024"
       ACCESS_CODE: "DATALINK-2026"
+      # Scénario à deux phases (la phase 2 exige l'infra Docker live).
+      # 0 = portail en phase 1 uniquement (défaut) ; 1 = active la phase 2.
+      # Surcharger via infra/.env (PHASE2_ENABLED=1).
+      PHASE2_ENABLED: "${PHASE2_ENABLED:-0}"
       # Empreintes SHA-256 des flags — jamais le flag en clair (cf. evolution1.md, P1).
       # Régénérer après modification d'un flag : python3 infra/gen-flag-hashes.py
       FLAG_P0_SHA256: "2a5e4ee9e80c31f92a6c968f0ea08c1dc9c49967df8a3a3fb18e640188da997a"

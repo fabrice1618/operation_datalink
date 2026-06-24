@@ -93,6 +93,12 @@ identiques sur le fond (mêmes flux, mêmes preuves).
    live (cf. ci-dessous) — **mais pas du code source** — et prouver que
    l'exfiltration se poursuit.
 
+> **Portail en une ou deux phases.** Par défaut le portail s'arrête à la phase 1
+> (analyse des scellés PCAP) : les écrans « Phase 2 » et « Preuves P2 » sont
+> masqués et la réquisition P6 n'entre pas au classement. Pour ouvrir la phase 2,
+> positionnez `PHASE2_ENABLED=1` dans `infra/.env` avant de (re)lancer le portail
+> (`make portal`).
+
 ### Accès des étudiants à l'infra live (phase 2)
 
 L'infra écoute sur le réseau Docker `10.13.37.0/24`. Deux options :
