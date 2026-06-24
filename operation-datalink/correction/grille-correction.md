@@ -12,10 +12,10 @@ timeline, qualification juridique), 4 pts pour la phase 2.
 
 ## Preuve P1 — Coordination du trafic *(scellé 01)*
 - **Flag :** `DATALINK{RDV_QUAI17_14MAI_0300}`
-- **Piège pédagogique :** dans la capture, le code est **URL-encodé**
-  (`DATALINK%7BRDV_QUAI17_14MAI_0300%7D`). N'acceptez le flag qu'une fois
-  **décodé** (`%7B`→`{`, `%7D`→`}`). Tolérance : si l'étudiant rend la forme
-  encodée mais explique le décodage, accepter.
+- **Piège pédagogique :** le code n'apparaît pas en clair. Il est **scindé en
+  deux messages** et chiffré en **ROT13** (le corps du POST est de plus
+  URL-encodé). Le binôme doit recoller les deux moitiés puis appliquer ROT13.
+  N'acceptez que le jeton final décodé.
 - **Localisation attendue :** flux HTTP (port 80), requête `POST /post` de
   `10.13.37.20` (Sofia) → `10.13.37.50`.
 - **Qualification :** trafic de stupéfiants / coordination (art. 222-37 CP) ;
@@ -23,6 +23,9 @@ timeline, qualification juridique), 4 pts pour la phase 2.
 
 ## Preuve P2 — Exfiltration de la base clients *(scellé 02)*
 - **Flag :** `DATALINK{4213_CLIENTS_RGPD_EXFILTRES}`
+- **Piège pédagogique :** le jeton est **inscrit à l'envers** dans la 1re ligne
+  du CSV reconstitué (`ref(envers):}SERTLIFXE_…{KNILATAD`) : à relire à l'envers
+  (`rev`). Reconstituer le fichier reste le geste central.
 - **Localisation attendue :** FTP (port 21) de `10.13.37.10` (Marc) →
   `10.13.37.200` ; commandes `USER depot` / `PASS Pr1nt3mps2026!` /
   `STOR clients_nordexport.csv` ; fichier reconstitué via le **canal de données
@@ -38,6 +41,10 @@ timeline, qualification juridique), 4 pts pour la phase 2.
   objet « Derniere mise en garde ». Pièce jointe `conditions_diffusion.txt`
   **base64** à décoder.
 - **Attendu en plus :** montant **50 000 EUR en BTC**, délai 72 h.
+- **Bonus — usurpation :** l'en-tête `From:` affiche `m.vidal@nordexport.lan`
+  (Marc), mais le vrai émetteur est **Sofia** — IP source `10.13.37.20`, enveloppe
+  `MAIL FROM:<s.lenoir@nordexport.lan>`. Valoriser qui ne se fie pas à l'en-tête.
+  En socle, tolérer toute identification d'expéditeur corroborée par l'IP source.
 - **Qualification :** chantage (art. 312-10 CP) / menaces (art. 222-17 CP).
 
 ## Preuve P4 — Intrusion dans le serveur *(scellé 01)*
@@ -45,15 +52,18 @@ timeline, qualification juridique), 4 pts pour la phase 2.
 - **Localisation attendue :** scan = ~**102** paquets SYN de `10.13.37.66` vers
   les ports 1-100 + 443 de `10.13.37.50`
   (`tcp.flags.syn==1 && tcp.flags.ack==0 && ip.src==10.13.37.66`). Puis session
-  **telnet** (port 23) : login `admin` / `Adm1n-NordExport!`, commande
-  `cat /root/access.txt` révélant le jeton.
+  **telnet** (port 23) : login `admin` / `Adm1n-NordExport!`.
+- **Piège pédagogique :** `cat /root/access.txt` n'affiche pas le jeton mais une
+  **chaîne hexadécimale** à décoder (`xxd -r -p`) ; `cat /root/notes.txt` l'indique.
+- **Bonus — MITM / ARP :** avant le telnet, `.66` émet des **ARP gratuits**
+  usurpant la passerelle `.1` (filtre `arp`). Valoriser la caractérisation du MITM.
 - **Qualification :** accès et maintien frauduleux dans un STAD (art. 323-1 CP).
 
 ## Preuve P5 — Canal caché DNS *(scellé 02)*
 - **Flag :** `DATALINK{TUNNEL_DNS_C2_ACTIF}`
 - **Localisation attendue :** DNS (UDP 53) de `10.13.37.10` → `10.13.37.200` ;
-  requête **TXT** `status.darkdrop-exchange.net`, jeton dans la valeur du TXT
-  (`v=c2; cmd=exfil; key=DATALINK{...}`).
+  requête **TXT** `status.darkdrop-exchange.net`. La valeur `key=` est **encodée
+  en base64** (`key=REFUQUxJTkt7…`) : à décoder pour obtenir le jeton.
 - **Attendu en plus :** explique que le DNS, souvent autorisé en sortie et peu
   inspecté, permet de faire transiter commandes/données discrètement
   (tunneling / canal de C2).
@@ -61,7 +71,24 @@ timeline, qualification juridique), 4 pts pour la phase 2.
 
 ## Identification des protagonistes (points PV)
 Attendu : tableau IP ↔ MAC ↔ rôle, reconstruit via **ARP** et **DNS**.
-Cf. `flags.txt` pour la correspondance.
+Cf. `flags.txt` pour la correspondance. Le poste `10.13.37.40` (`pc-it`) est un
+**leurre/bruit** légitime (support informatique), à distinguer des suspects.
+
+## Leurre & bruit de fond
+- Le réseau contient du **trafic parasite** (DNS anodin, GET sur la messagerie,
+  mail interne banal) émis par `10.13.37.40` : c'est volontaire, pour exercer le
+  **filtrage**. Un PV qui le qualifie d'« activité criminelle » est à reprendre.
+- Le faux jeton `DATALINK{ARCHIVE_SAUVEGARDE_2025}` (message « IT-Support » du
+  chat) est un **leurre**. Rendu **sans localisation cohérente**, il est
+  irrecevable et **sanctionné** : il matérialise « la localisation fait foi ».
+  Le portail le rejette de toute façon (jeton non enregistré).
+
+## Défis bonus (non notés au socle — badges / points d'émulation)
+- **Usurpation SMTP** (cf. P3) : vrai émetteur = Sofia malgré l'en-tête `From`.
+- **MITM / ARP** (cf. P4) : `.66` usurpe la passerelle `.1`.
+- **Corrélation inter-scellés** : STOR FTP (02) ↔ chat « j'efface l'historique »
+  (01) ; `darkdrop`/`.200` relié entre chat (01), DNS et FTP (02).
+- Autres pistes rapides : débit d'exfiltration FTP, timeline à la seconde.
 
 ---
 
@@ -75,6 +102,8 @@ Cf. `flags.txt` pour la correspondance.
 
 ## Erreurs fréquentes à sanctionner légèrement
 - Flag rendu sans localisation (n° de trame / IP / port) → jeton non recevable.
+- **Leurre `DATALINK{ARCHIVE_SAUVEGARDE_2025}` rendu comme une vraie preuve.**
 - Confusion canal de contrôle / canal de données en FTP.
-- Oubli du décodage URL (P1) ou base64 (P3).
+- Décodage incomplet : ROT13 + recollage (P1), lecture à l'envers (P2), base64
+  (P3, P5), hexadécimal (P4).
 - Confusion entre l'IP de l'intrus (.66) et celle du serveur (.50).

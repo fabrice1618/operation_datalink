@@ -30,9 +30,11 @@ m'en rapporter les preuves matérielles.** Chaque preuve devra être :
 3. **consignée** dans le procès-verbal type fourni (`modele-proces-verbal.md`).
 
 Pour chaque preuve, un **jeton de scellé** au format `DATALINK{...}` est présent
-dans les données : c'est l'élément matériel que vous devez extraire et reporter.
-Il atteste que vous avez bien mis la main sur la pièce, et non sur une simple
-impression.
+dans les données — mais **rarement en clair** : il faut le plus souvent
+reconstituer le flux du protocole, puis le **décoder**. Il atteste que vous avez
+bien mis la main sur la pièce, et non sur une simple impression. Soyez vigilants :
+le trafic comporte du **bruit** légitime et un éventuel **leurre** ; seule une
+pièce correctement **localisée** et cohérente est recevable.
 
 ⚠️ **Rappel déontologique (chaîne de preuve).** Ne travaillez que sur des copies
 des scellés. Notez systématiquement *où* vous avez trouvé chaque élément : une

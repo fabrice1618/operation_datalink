@@ -124,10 +124,31 @@ services:
     networks:
       lan:
         ipv4_address: 10.13.37.66
+    # Emission d'ARP gratuits (positionnement MITM, defi bonus) via scapy.
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
     depends_on:
       srv:
         condition: service_healthy
     command: ["python3", "/opt/scenario/intrus.py"]
+
+  # Poste "bruit de fond" : trafic legitime (DNS/HTTP/SMTP anodins) + 1 leurre.
+  # Force le filtrage du signal et piege le "grep DATALINK" aveugle.
+  poste-bruit:
+    build: ./images/acteurs
+    image: datalink-acteurs
+    container_name: datalink-poste-bruit
+    hostname: pc-it
+    networks:
+      lan:
+        ipv4_address: 10.13.37.40
+    depends_on:
+      srv:
+        condition: service_healthy
+      darkdrop:
+        condition: service_healthy
+    command: ["python3", "/opt/scenario/bruit.py"]
 
   # ---------------------------------------------------------------------------
   # Portail pédagogique : énoncé, soumission de flags, dépôt PV

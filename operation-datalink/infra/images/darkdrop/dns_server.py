@@ -5,6 +5,7 @@
 - Repond a une requete TXT particuliere par un jeton : c'est un canal cache
   (exfiltration/commande via DNS), visible en clair dans la capture.
 """
+import base64
 import socketserver
 from dnslib import RR, QTYPE, A, TXT, RCODE
 from dnslib import DNSRecord
@@ -13,10 +14,16 @@ ZONE_A = {
     "darkdrop-exchange.net.": "10.13.37.200",
     "srv-nordexport.lan.": "10.13.37.50",
     "panel.darkdrop-exchange.net.": "10.13.37.200",
+    # Domaines anodins resolus par le poste de bruit de fond (trafic parasite).
+    "meteo.example.": "203.0.113.10",
+    "maj.intranet.lan.": "10.13.37.50",
 }
 
-# Canal cache : la reponse TXT transporte le jeton de controle.
-TXT_TOKEN = "v=c2; cmd=exfil; key=DATALINK{TUNNEL_DNS_C2_ACTIF}"
+# Canal cache : la reponse TXT transporte le jeton de controle. La valeur du
+# champ "key" n'est PAS en clair : elle est encodee en base64. Il faut isoler la
+# reponse TXT puis decoder la chaine situee apres "key=".
+_FLAG_P5 = "DATALINK{TUNNEL_DNS_C2_ACTIF}"
+TXT_TOKEN = "v=c2; cmd=exfil; key=" + base64.b64encode(_FLAG_P5.encode()).decode()
 TXT_NAME = "status.darkdrop-exchange.net."
 
 

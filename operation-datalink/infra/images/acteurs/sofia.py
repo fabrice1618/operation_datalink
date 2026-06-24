@@ -6,6 +6,7 @@ Timeline :
   - envoie un e-mail de menace/chantage via SMTP (port 25), avec une piece
     jointe encodee en base64
 """
+import codecs
 import smtplib
 import time
 import urllib.parse
@@ -14,10 +15,17 @@ from email.message import EmailMessage
 
 SRV = "10.13.37.50"
 
-# Preuve P1 : code de rendez-vous glisse dans la conversation
+# Preuve P1 : code de rendez-vous glisse dans la conversation. Il n'est jamais
+# donne en clair : il est decoupe en deux moities et chacune est chiffree en
+# ROT13 (decalage de 13 lettres). Reconstitution attendue : recoller le flux
+# HTTP des deux messages, puis appliquer ROT13.
 RDV_CODE = "DATALINK{RDV_QUAI17_14MAI_0300}"
 # Preuve P3 : reference de la rancon, dans la piece jointe
 RANSOM_FLAG = "DATALINK{RANCON_50000E_BTC}"
+
+
+def rot13(texte):
+    return codecs.encode(texte, "rot13")
 
 
 def chat(auteur, texte):
@@ -36,17 +44,25 @@ def main():
     t0 = time.time()
 
     # --- Coordination du trafic via le chat (P1) ---
+    mid = len(RDV_CODE) // 2
     sleep_until(t0, 8)
     chat("Sofia", "Marc, la marchandise arrive cette nuit. Tu confirmes le point de chute ?")
-    sleep_until(t0, 16)
-    chat("Sofia", "Parfait. Code de rendez-vous a donner au transporteur : " + RDV_CODE)
-    sleep_until(t0, 24)
+    sleep_until(t0, 14)
+    chat("Sofia", "Comme d'habitude : depot sur darkdrop. Je passe le code en deux fois, decale facon ROT13.")
+    sleep_until(t0, 18)
+    chat("Sofia", "Code (1/2, ROT13) : " + rot13(RDV_CODE[:mid]))
+    sleep_until(t0, 22)
+    chat("Sofia", "Code (2/2, ROT13) : " + rot13(RDV_CODE[mid:]))
+    sleep_until(t0, 28)
     chat("Sofia", "Ne mets RIEN par ecrit ailleurs. On efface ce canal demain.")
 
     # --- Menace / chantage par e-mail (P3) ---
+    # Usurpation (defi bonus) : l'en-tete "From" est falsifie pour faire accuser
+    # Marc, alors que l'enveloppe SMTP (MAIL FROM) et l'IP source reelle (.20)
+    # trahissent la veritable expeditrice, Sofia.
     sleep_until(t0, 45)
     msg = EmailMessage()
-    msg["From"] = "s.lenoir@nordexport.lan"
+    msg["From"] = "m.vidal@nordexport.lan"
     msg["To"] = "directeur@groupe-rival.example"
     msg["Subject"] = "Derniere mise en garde"
     msg.set_content(
@@ -69,7 +85,11 @@ def main():
     )
 
     with smtplib.SMTP(SRV, 25, timeout=10) as s:
-        s.send_message(msg)
+        s.send_message(
+            msg,
+            from_addr="s.lenoir@nordexport.lan",
+            to_addrs=["directeur@groupe-rival.example"],
+        )
 
     print("sofia: termine")
 

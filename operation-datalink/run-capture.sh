@@ -24,10 +24,10 @@ docker compose up -d cap-srv cap-darkdrop
 sleep 4   # laisse tcpdump s'initialiser avant le premier paquet utile
 
 echo "[*] Rejeu du scenario (postes acteurs)..."
-docker compose up -d poste-sofia poste-marc poste-intrus
+docker compose up -d poste-sofia poste-marc poste-intrus poste-bruit
 
 echo "[*] Attente de la fin du scenario..."
-docker wait datalink-poste-sofia datalink-poste-marc datalink-poste-intrus >/dev/null
+docker wait datalink-poste-sofia datalink-poste-marc datalink-poste-intrus datalink-poste-bruit >/dev/null
 sleep 3   # flush des derniers paquets
 
 echo "[*] Arret des sondes..."

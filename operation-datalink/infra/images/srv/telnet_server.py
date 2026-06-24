@@ -5,16 +5,26 @@ Tout transite en clair : login, mot de passe et commandes. L'intrus s'y
 connecte apres son scan de ports. Le "Suivre le flux TCP" reconstitue
 l'integralite de la session, y compris le jeton d'acces.
 """
+import binascii
 import socketserver
 
 USER = "admin"
 PASSWORD = "Adm1n-NordExport!"
+# Le jeton d'acces n'est PAS stocke en clair : il est encode en hexadecimal.
+# Dans la session telnet, "cat /root/access.txt" affiche donc une suite hexa ;
+# il faut la decoder (xxd -r -p, ou tout decodeur hexa) pour obtenir le jeton.
 ACCESS_TOKEN = "DATALINK{STAD_ROOT_NORDEXPORT}"
+ACCESS_TOKEN_HEX = binascii.hexlify(ACCESS_TOKEN.encode()).decode()
 
 MOTD = "Ubuntu 22.04.3 LTS (srv-nordexport)\r\n"
 
 FILES = {
-    "/root/access.txt": ACCESS_TOKEN + "\r\n",
+    "/root/access.txt": ACCESS_TOKEN_HEX + "\r\n",
+    "/root/notes.txt": (
+        "Memo admin :\r\n"
+        "- jeton d'acces stocke en HEXADECIMAL dans access.txt (decoder : xxd -r -p)\r\n"
+        "- penser a migrer ce service telnet vers SSH\r\n"
+    ),
 }
 
 
