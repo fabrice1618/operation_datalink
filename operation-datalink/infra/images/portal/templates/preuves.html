@@ -35,13 +35,10 @@
     </div>
     <div class="frame-body" id="body-{{ phase }}">
       <div class="text-faint" style="font-size: var(--fs-xs); margin-bottom: .5rem;">// scellé {{ phase }}</div>
-      {# Saisie / validation des faits — réécrite à la résolution (le narratif PV reste). #}
+      {# Saisie / validation des faits. Les valeurs relevées restent affichées
+         (verrouillées) après validation, pour servir à la rédaction du PV. #}
       <div id="facts-{{ phase }}">
-      {% if is_found %}
-      <div class="text-bright" style="font-size: var(--fs-sm);">
-        ✓ Preuve versée au dossier.
-      </div>
-      {% elif is_releve %}
+      {% if is_releve %}
       {% set rfields = releve_fields[phase] %}
       {# Réquisition « relevé d'enquête » : plusieurs faits lus dans le flux. #}
       <div class="text-faint" style="font-size: var(--fs-xs); margin-bottom: .7rem;">
@@ -59,7 +56,12 @@
           <div class="text-faint" style="font-size: var(--fs-xs); margin: .15rem 0 .35rem;">{{ fhint }}</div>
           <div class="releve-cell" id="releve-cell-{{ key }}">
             {% if fdone %}
-            <div class="text-bright" style="font-size: var(--fs-sm);">✓ versé au dossier</div>
+            {# Valeur validée : affichée et verrouillée (visible pour le PV). #}
+            <div class="releve-locked">
+              <span class="prompt">›</span>
+              <span class="releve-value">{{ pv_fields.get('fact_' ~ phase ~ '_' ~ key, '') }}</span>
+            </div>
+            <div class="releve-stamp">✓ versé au dossier</div>
             {% else %}
             <div class="prompt-field">
               <span class="prompt">›</span>
@@ -71,9 +73,17 @@
         </div>
         {% endfor %}
       </div>
-      <div style="display:flex; gap:1ch; align-items:center; margin-top: var(--space-4); flex-wrap: wrap;">
+      <div id="releve-actions-{{ phase }}" style="display:flex; gap:1ch; align-items:center; margin-top: var(--space-4); flex-wrap: wrap;">
+        {% if is_found %}
+        <div class="text-bright" style="font-size: var(--fs-sm);">✓ Preuve versée au dossier — relevé conservé pour le PV.</div>
+        {% else %}
         <button class="btn" onclick="submitReleve('{{ phase }}')">▸ Vérifier les preuves</button>
         <div id="releve-feedback-{{ phase }}" style="min-height: 1.4rem; font-size: var(--fs-xs);"></div>
+        {% endif %}
+      </div>
+      {% elif is_found %}
+      <div class="text-bright" style="font-size: var(--fs-sm);">
+        ✓ Preuve versée au dossier.
       </div>
       {% else %}
       <div style="display: flex; gap: 1ch; align-items: stretch;">
@@ -128,6 +138,22 @@
   @media (max-width: 640px) { .releve-grid { grid-template-columns: 1fr; } }
   .releve-label {
     display: flex; align-items: center; justify-content: space-between; gap: 1ch;
+  }
+  /* Valeur relevée validée : conservée à l'écran (verrouillée) pour le PV. */
+  .releve-locked {
+    display: flex; align-items: baseline; gap: .6ch;
+    padding: .4rem .7rem;
+    background: var(--bg-inset);
+    border: 1px solid var(--p-ghost);
+  }
+  .releve-locked .prompt { color: var(--p-dim); flex-shrink: 0; }
+  .releve-value {
+    flex: 1; min-width: 0; word-break: break-word;
+    color: var(--p-bright); text-shadow: var(--text-glow);
+  }
+  .releve-stamp {
+    margin-top: .25rem; font-size: var(--fs-2xs);
+    letter-spacing: .04em; color: var(--p-dim);
   }
   /* Narratif consigné au PV, sous les faits de chaque preuve */
   .pv-narrative {
@@ -253,8 +279,16 @@ function lockReleveField(key) {
   const badge = document.getElementById('releve-badge-' + key);
   if (badge) { badge.className = 'badge badge-success'; badge.textContent = 'OK'; }
   const cell = document.getElementById('releve-cell-' + key);
-  if (cell) cell.innerHTML =
-    '<div class="text-bright" style="font-size: var(--fs-sm);">✓ versé au dossier</div>';
+  if (!cell) return;
+  // On conserve la valeur saisie à l'écran (verrouillée) — utile pour le PV.
+  const inp = document.getElementById('releve-input-' + key);
+  const val = inp ? inp.value.trim() : '';
+  cell.innerHTML =
+    '<div class="releve-locked"><span class="prompt">›</span>' +
+    '<span class="releve-value"></span></div>' +
+    '<div class="releve-stamp">✓ versé au dossier</div>';
+  // textContent : pas d'injection HTML depuis la saisie utilisateur.
+  cell.querySelector('.releve-value').textContent = val;
 }
 
 function flashReleveError(key) {
@@ -269,10 +303,12 @@ function flashReleveError(key) {
 function markReleveSolved(phase) {
   const badge = document.getElementById('badge-' + phase);
   if (badge) { badge.className = 'badge badge-success'; badge.textContent = 'OK'; }
-  // Réécrit uniquement la zone des faits ; le narratif PV (#narrative) demeure.
-  const facts = document.getElementById('facts-' + phase);
-  if (facts) facts.innerHTML =
-    '<div class="text-bright" style="font-size: var(--fs-sm);">✓ Preuve versée au dossier.</div>';
+  // On ne masque plus les valeurs : la grille (verrouillée) reste à l'écran
+  // pour la rédaction du PV. On remplace seulement la barre d'action.
+  const actions = document.getElementById('releve-actions-' + phase);
+  if (actions) actions.innerHTML =
+    '<div class="text-bright" style="font-size: var(--fs-sm);">' +
+    '✓ Preuve versée au dossier — relevé conservé pour le PV.</div>';
   renderBar(parseInt(document.getElementById('counter').textContent || '0') + 1);
 }
 
