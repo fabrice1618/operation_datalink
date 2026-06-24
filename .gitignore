@@ -9,3 +9,4 @@ __pycache__/
 .env
 Opération Datalink Design System.zip
 *.pcap
+test/

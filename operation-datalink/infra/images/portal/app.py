@@ -78,11 +78,14 @@ def _load_flag_hash(phase: str) -> str:
 # Empreintes SHA-256 des flags attendus (jamais le flag en clair).
 FLAG_HASHES = {p: _load_flag_hash(p) for p in ("P0", "P1", "P2", "P3", "P4", "P5", "P6")}
 
-# Réquisitions « relevé d'enquête » — depuis cette version, R1 et R2 ne sont plus
-# des chasses au jeton mais des relevés de faits lus dans le flux (chat HTTP pour
-# R1 — scellé 01 ; transfert FTP pour R2 — scellé 02). Chaque champ a sa propre
-# empreinte ; l'étape n'est validée (et versée au classement) que lorsque TOUS ses
-# champs sont corrects, et seuls les champs corrects sont verrouillés.
+# Réquisitions « relevé d'enquête » — depuis cette version, toute la phase 1 (R1 à
+# R5) relève des faits lus dans le flux plutôt qu'une chasse au jeton :
+#   R1 — chat HTTP (scellé 01)        R2 — transfert FTP (scellé 02)
+#   R3 — e-mail SMTP (scellé 01)      R4 — scan + telnet (scellé 01)
+#   R5 — canal caché DNS (scellé 02)
+# Chaque champ a sa propre empreinte ; l'étape n'est validée (et versée au
+# classement) que lorsque TOUS ses champs sont corrects, et seuls les champs
+# corrects sont verrouillés.
 #
 # Format d'un champ : (clé, libellé, indice, exemple). Les clés sont uniques
 # toutes réquisitions confondues (la table r1_fields est partagée).
@@ -117,6 +120,54 @@ RELEVE_FIELDS = {
         ("ip_user",    "IP de l'utilisateur",
          "L'adresse du poste interne qui envoie le fichier (source du transfert).",
          "0.0.0.0"),
+    ],
+    "P3": [
+        ("destinataire", "Destinataire du mail",
+         "L'adresse à qui le message de menace est adressé (RCPT TO).",
+         "nom@domaine"),
+        ("montant",      "Montant exigé",
+         "La somme réclamée, en chiffres (lue dans la pièce jointe décodée).",
+         "nombre"),
+        ("crypto",       "Mode de paiement",
+         "La monnaie dans laquelle la rançon doit être versée.",
+         "monnaie"),
+        ("delai",        "Délai imparti",
+         "Le temps laissé pour répondre aux conditions.",
+         "ex. 24 heures"),
+        ("piece_jointe", "Nom de la pièce jointe",
+         "Le nom de fichier joint au message (en-tête de la pièce jointe).",
+         "fichier.ext"),
+    ],
+    "P4": [
+        ("ip_intrus",  "IP de l'intrus",
+         "L'adresse de la machine qui scanne puis se connecte au serveur.",
+         "0.0.0.0"),
+        ("nb_ports",   "Ports scannés",
+         "Le nombre de ports testés par la machine pendant la reconnaissance.",
+         "nombre"),
+        ("admin_user", "Identifiant d'administration",
+         "Le compte utilisé pour ouvrir la session telnet sur le serveur.",
+         "login"),
+        ("admin_pass", "Mot de passe",
+         "Le mot de passe transmis en clair lors de la connexion telnet.",
+         "mot de passe"),
+    ],
+    "P5": [
+        ("c2_domaine",     "Domaine du C2",
+         "Le domaine du serveur externe avec lequel le poste dialogue.",
+         "domaine.tld"),
+        ("c2_ip",          "IP résolue du C2",
+         "L'adresse IP renvoyée pour ce domaine (réponse A).",
+         "0.0.0.0"),
+        ("dns_type",       "Type d'enregistrement détourné",
+         "Le type de requête DNS qui sert de canal caché.",
+         "ex. A / TXT / MX"),
+        ("c2_sousdomaine", "Sous-domaine de contrôle",
+         "Le nom complet interrogé pour le canal caché (FQDN).",
+         "sous.domaine.tld"),
+        ("c2_ordre",       "Ordre transmis (champ key=)",
+         "La valeur du champ key= de la réponse TXT, décodée du base64.",
+         "valeur décodée"),
     ],
 }
 RELEVE_FIELD_KEYS = {p: [k for k, *_ in fields] for p, fields in RELEVE_FIELDS.items()}
@@ -224,7 +275,7 @@ def init_db():
                 FOREIGN KEY (group_id) REFERENCES groups(id)
             );
             -- Champs de relevé correctement versés (présence = champ validé).
-            -- Partagée par toutes les réquisitions « relevé d'enquête » (R1, R2) ;
+            -- Partagée par toutes les réquisitions « relevé d'enquête » (R1 à R5) ;
             -- les clés de champ sont uniques d'une réquisition à l'autre. L'étape
             -- n'entre dans flag_submissions que lorsque TOUS les champs de la
             -- réquisition sont présents pour l'équipe.
@@ -591,7 +642,7 @@ def preuves2():
 
 @app.route("/api/releve", methods=["POST"])
 def api_releve():
-    """Validation des faits d'une réquisition « relevé d'enquête » (R1, R2).
+    """Validation des faits d'une réquisition « relevé d'enquête » (R1 à R5).
 
     Chaque champ est vérifié indépendamment : seuls les champs corrects sont
     enregistrés (donc verrouillés). L'étape n'est versée au dossier (et au
@@ -666,7 +717,7 @@ def api_flag():
     # peut pas vérifier qu'elle est versée dans la bonne case.
     if phase not in PHASE_LABELS:
         return jsonify({"error": "Réquisition inconnue"}), 400
-    # Les réquisitions « relevé d'enquête » (R1, R2) ne sont plus des chasses au
+    # Les réquisitions « relevé d'enquête » (R1 à R5) ne sont plus des chasses au
     # jeton : elles passent par /api/releve, pas par la soumission de jeton.
     if phase in RELEVE_FIELDS:
         return jsonify({"error": "Cette réquisition se valide via son formulaire d'enquête."}), 400

@@ -1,8 +1,10 @@
 # Opération Datalink — flags (CONFIDENTIEL enseignant)
 #
-# Les VALEURS ci-dessous sont inchangées (empreintes SHA-256 du portail
-# identiques) ; seule leur REPRÉSENTATION dans les scellés change — cf. le
-# camouflage entre crochets, qui impose de reconstituer le flux puis de décoder.
+# Toute la phase 1 (R1 à R5) est désormais un RELEVÉ D'ENQUÊTE : plus de jeton à
+# chasser, on relève des FAITS dans le flux (et on décode le base64 pour R3/R5).
+# Réponses de référence + alias acceptés ci-dessous ; saisie insensible
+# casse/accents/espaces (cf. infra/gen-releve-hashes.py). Seule la phase 2 reste
+# un jeton. Le seul littéral DATALINK{...} des captures est le LEURRE (voir plus bas).
 
 # P1 n'est plus un jeton : relevé d'enquête (4 faits lus dans le chat HTTP).
 #   Suspects     : Sofia Lenoir + Marc Vidal  (ordre indifférent)
@@ -16,9 +18,23 @@
 #   Mot de passe FTP    : Pr1nt3mps2026!
 #   IP du serveur       : 10.13.37.200     (darkdrop, destination)
 #   IP de l'utilisateur : 10.13.37.10      (poste de Marc, source)
-P3  Menaces (SMTP/base64)      DATALINK{RANCON_50000E_BTC}            [pièce jointe base64]
-P4  Intrusion (scan + telnet)  DATALINK{STAD_ROOT_NORDEXPORT}         [hexadécimal]
-P5  Canal caché (DNS TXT)      DATALINK{TUNNEL_DNS_C2_ACTIF}          [base64]
+# P3 n'est plus un jeton : relevé d'enquête (5 faits du mail de chantage, scellé 01).
+#   Destinataire  : directeur@groupe-rival.example
+#   Montant exigé : 50000             (alias : 50 000 ; lu dans la PJ base64)
+#   Paiement      : BTC               (alias : bitcoin)
+#   Délai         : 72 heures         (alias : 72h, 72 h, 72)
+#   Pièce jointe  : conditions_diffusion.txt
+# P4 n'est plus un jeton : relevé d'enquête (4 faits du scan + telnet, scellé 01).
+#   IP de l'intrus : 10.13.37.66
+#   Ports scannés  : 101              (ports 1-100 + 443 ; alias 102 = paquets SYN)
+#   Identifiant    : admin
+#   Mot de passe   : Adm1n-NordExport!
+# P5 n'est plus un jeton : relevé d'enquête (5 faits du canal caché DNS, scellé 02).
+#   Domaine C2      : darkdrop-exchange.net
+#   IP résolue C2   : 10.13.37.200
+#   Type détourné   : TXT
+#   Sous-domaine    : status.darkdrop-exchange.net
+#   Ordre décodé    : purge-journaux  (champ key= base64 ; alias purge journaux, purge-logs)
 
 Phase 2  Persistance (web live) DATALINK{SEQUESTRE_EXFIL_TOUJOURS_ACTIVE}
 

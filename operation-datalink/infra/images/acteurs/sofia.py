@@ -21,8 +21,9 @@ SRV = "10.13.37.50"
 #   - le transporteur (Transports Caron)
 #   - la date de chargement (14/05/2026, dans la nuit du 14 mai a 03h00)
 #   - le numero de colis (NX-4417)
-# Preuve P3 : reference de la rancon, dans la piece jointe
-RANSOM_FLAG = "DATALINK{RANCON_50000E_BTC}"
+# Preuve P3 : l'enquete ne cherche plus de jeton mais releve les faits du mail de
+# chantage (destinataire, montant 50 000 EUR, paiement en BTC, delai 72 heures,
+# nom de la piece jointe). Montant/delai sont lus dans la piece jointe base64.
 
 
 def chat(auteur, texte):
@@ -70,8 +71,8 @@ def main():
         "CONDITIONS\n"
         "==========\n"
         "Montant exige : 50 000 EUR en BTC\n"
+        "Delai : 72 heures pour repondre.\n"
         "Sans quoi les documents seront diffuses a la presse.\n"
-        "Reference de dossier : " + RANSOM_FLAG + "\n"
     )
     msg.add_attachment(
         piece.encode(),

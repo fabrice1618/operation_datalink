@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Génère le bloc d'environnement SHA-256 des champs des réquisitions « relevé ».
 
-Depuis cette version, R1 et R2 ne sont plus des chasses au jeton : l'étudiant
-relève plusieurs faits lus dans le flux (chat HTTP pour R1 — scellé 01 ; transfert
-FTP pour R2 — scellé 02). Le portail ne connaît jamais la réponse en clair,
-seulement l'empreinte de sa forme **normalisée** — la même normalisation que
-`app.py` (`_normalize` / `_normalize_suspects`). Gardez les deux en phase si vous
-modifiez la normalisation.
+Depuis cette version, toute la phase 1 (R1 à R5) relève des faits lus dans le flux
+au lieu de chasser un jeton :
+  R1 — chat HTTP (scellé 01)     R2 — transfert FTP (scellé 02)
+  R3 — e-mail SMTP (scellé 01)   R4 — scan + telnet (scellé 01)
+  R5 — canal caché DNS (scellé 02)
+Le portail ne connaît jamais la réponse en clair, seulement l'empreinte de sa
+forme **normalisée** — la même normalisation que `app.py` (`_normalize` /
+`_normalize_suspects`). Gardez les deux en phase si vous modifiez la normalisation.
 
 Plusieurs réponses sont admises par champ (variantes de saisie) : chaque champ
 produit donc une liste d'empreintes séparées par des espaces, à recoller dans le
@@ -53,6 +55,26 @@ RELEVE = {
         "FTP_PASS":   [normalize("Pr1nt3mps2026!")],
         "IP_SERVEUR": [normalize("10.13.37.200")],
         "IP_USER":    [normalize("10.13.37.10")],
+    },
+    "P3": {
+        "DESTINATAIRE": [normalize("directeur@groupe-rival.example")],
+        "MONTANT":      [normalize(v) for v in ("50000", "50 000")],
+        "CRYPTO":       [normalize(v) for v in ("BTC", "bitcoin")],
+        "DELAI":        [normalize(v) for v in ("72 heures", "72h", "72 h", "72")],
+        "PIECE_JOINTE": [normalize("conditions_diffusion.txt")],
+    },
+    "P4": {
+        "IP_INTRUS":  [normalize("10.13.37.66")],
+        "NB_PORTS":   [normalize(v) for v in ("101", "102")],
+        "ADMIN_USER": [normalize("admin")],
+        "ADMIN_PASS": [normalize("Adm1n-NordExport!")],
+    },
+    "P5": {
+        "C2_DOMAINE":     [normalize("darkdrop-exchange.net")],
+        "C2_IP":          [normalize("10.13.37.200")],
+        "DNS_TYPE":       [normalize("TXT")],
+        "C2_SOUSDOMAINE": [normalize("status.darkdrop-exchange.net")],
+        "C2_ORDRE":       [normalize(v) for v in ("purge-journaux", "purge journaux", "purge-logs")],
     },
 }
 

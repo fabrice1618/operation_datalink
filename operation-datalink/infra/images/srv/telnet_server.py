@@ -3,27 +3,21 @@
 
 Tout transite en clair : login, mot de passe et commandes. L'intrus s'y
 connecte apres son scan de ports. Le "Suivre le flux TCP" reconstitue
-l'integralite de la session, y compris le jeton d'acces.
+l'integralite de la session : l'enquete y releve l'identifiant et le mot de
+passe d'administration interceptes (P4 = relevé d'enquete, plus de jeton).
 """
-import binascii
 import socketserver
 
 USER = "admin"
 PASSWORD = "Adm1n-NordExport!"
-# Le jeton d'acces n'est PAS stocke en clair : il est encode en hexadecimal.
-# Dans la session telnet, "cat /root/access.txt" affiche donc une suite hexa ;
-# il faut la decoder (xxd -r -p, ou tout decodeur hexa) pour obtenir le jeton.
-ACCESS_TOKEN = "DATALINK{STAD_ROOT_NORDEXPORT}"
-ACCESS_TOKEN_HEX = binascii.hexlify(ACCESS_TOKEN.encode()).decode()
 
 MOTD = "Ubuntu 22.04.3 LTS (srv-nordexport)\r\n"
 
 FILES = {
-    "/root/access.txt": ACCESS_TOKEN_HEX + "\r\n",
     "/root/notes.txt": (
         "Memo admin :\r\n"
-        "- jeton d'acces stocke en HEXADECIMAL dans access.txt (decoder : xxd -r -p)\r\n"
-        "- penser a migrer ce service telnet vers SSH\r\n"
+        "- migrer ce service telnet (port 23, en clair) vers SSH au plus vite\r\n"
+        "- rotation des comptes d'administration a planifier\r\n"
     ),
 }
 
@@ -63,7 +57,7 @@ class TelnetHandler(socketserver.StreamRequestHandler):
         if cmd == "hostname":
             return "srv-nordexport\r\n"
         if cmd == "ls /root" or cmd == "ls":
-            return "access.txt  backup_clients.sql  notes.txt\r\n"
+            return "backup_clients.sql  notes.txt\r\n"
         if cmd.startswith("cat "):
             path = cmd[4:].strip()
             return FILES.get(path, "cat: {}: No such file or directory\r\n".format(path))
