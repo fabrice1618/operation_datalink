@@ -3,6 +3,8 @@ import hashlib
 import sqlite3
 import pathlib
 import markdown
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from flask import (
     Flask, render_template, request, redirect, url_for,
     session, jsonify, abort, flash, send_from_directory
@@ -13,6 +15,18 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "datalink-portal-secret-2024")
 # dev — recharge les templates Jinja modifies sans reconstruire (opt-in via env)
 app.config["TEMPLATES_AUTO_RELOAD"] = os.environ.get("TEMPLATES_AUTO_RELOAD") == "1"
+
+# Affichage des horodatages : SQLite stocke en UTC (CURRENT_TIMESTAMP) ; on
+# convertit en heure locale pour l'affichage (gère l'heure d'été/hiver).
+LOCAL_TZ = ZoneInfo(os.environ.get("PORTAL_TZ", "Europe/Paris"))
+
+
+def to_local(ts):
+    """Horodatage SQLite UTC ('YYYY-MM-DD HH:MM:SS') → heure locale, même format."""
+    if not ts:
+        return ts
+    dt = datetime.fromisoformat(ts).replace(tzinfo=timezone.utc).astimezone(LOCAL_TZ)
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
 @app.after_request
@@ -235,6 +249,7 @@ def ranked_scoreboard(groups, solves):
     rows.sort(key=lambda r: (-r["score"], r["last"] or "~"))
     for i, r in enumerate(rows, 1):
         r["rank"] = i
+        r["last"] = to_local(r["last"])  # tri en UTC, affichage en heure locale
     return rows
 
 
@@ -531,6 +546,10 @@ def pv():
             "SELECT filename, submitted_at FROM pv_uploads WHERE group_id = ? ORDER BY submitted_at DESC",
             (group_id,),
         ).fetchall()
+    uploads = [
+        {"filename": u["filename"], "submitted_at": to_local(u["submitted_at"])}
+        for u in uploads
+    ]
     return render_template("pv.html", group=group, uploads=uploads)
 
 
@@ -616,7 +635,10 @@ def dashboard():
 
     pvs_by_group = {}
     for p in pvs:
-        pvs_by_group.setdefault(p["group_id"], []).append(p)
+        pvs_by_group.setdefault(p["group_id"], []).append({
+            "filename": p["filename"],
+            "submitted_at": to_local(p["submitted_at"]),
+        })
 
     return render_template(
         "dashboard.html",
