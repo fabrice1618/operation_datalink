@@ -522,6 +522,68 @@ def build_pv_context(group_id: int) -> dict:
     }
 
 
+def pv_check(group_id: int) -> dict:
+    """Bilan de vérification du PV, par élément, en trois états.
+
+    - "ok"     : élément vérifiable automatiquement et correct (faits P1–P5,
+                 qui disposent d'une empreinte de référence) ;
+    - "manual" : texte libre renseigné — non vérifiable, à apprécier par le juge ;
+    - "error"  : faits non (entièrement) validés, ou champ requis laissé vide.
+    """
+    fields = pv_get_fields(group_id)
+    solved = releve_solved_fields(group_id)
+
+    def freetext(key, label):
+        filled = bool((fields.get(key) or "").strip())
+        return {"label": label,
+                "status": "manual" if filled else "error",
+                "note": "" if filled else "à renseigner"}
+
+    sections = []
+
+    sections.append({"label": "En-tête", "items": [
+        freetext(f"entete_{k}", lbl) for k, lbl, _ in PV_ENTETE
+    ]})
+
+    protag = _pv_grid_rows(fields.get("protagonistes_json"), PV_PROTAGONISTES_COLS)
+    sections.append({"label": "Protagonistes", "items": [{
+        "label": "Tableau des protagonistes",
+        "status": "manual" if protag else "error",
+        "note": f"{len(protag)} ligne(s)" if protag else "à renseigner",
+    }]})
+
+    preuve_items = []
+    for phase in PHASE_GROUPS[1]:
+        keys = RELEVE_FIELD_KEYS[phase]
+        n_ok = sum(1 for k in keys if k in solved)
+        if n_ok == len(keys):
+            preuve_items.append({"label": f"{phase} — faits", "status": "ok",
+                                 "note": "validés automatiquement"})
+        else:
+            preuve_items.append({"label": f"{phase} — faits", "status": "error",
+                                 "note": f"{n_ok}/{len(keys)} validés — à compléter sur « Preuves »"})
+        for nkey, nlabel, _ in PV_NARRATIVE:
+            preuve_items.append(freetext(f"{phase}_{nkey}", f"{phase} — {nlabel.lower()}"))
+    sections.append({"label": "Preuves", "items": preuve_items})
+
+    timeline = _pv_grid_rows(fields.get("timeline_json"), PV_TIMELINE_COLS)
+    sections.append({"label": "Chronologie", "items": [{
+        "label": "Timeline",
+        "status": "manual" if timeline else "error",
+        "note": f"{len(timeline)} événement(s)" if timeline else "à renseigner",
+    }]})
+
+    sections.append({"label": "Synthèse", "items": [
+        freetext("synthese", "Synthèse au juge")
+    ]})
+
+    counts = {"ok": 0, "manual": 0, "error": 0}
+    for s in sections:
+        for it in s["items"]:
+            counts[it["status"]] += 1
+    return {"sections": sections, "counts": counts}
+
+
 # Preuves comptabilisées au classement (l'entraînement P0 reste hors-concours ;
 # la phase 2 / P6 n'entre au score que si le scénario à deux phases est activé).
 SCORED_PHASES = PHASE_GROUPS[1] + (PHASE_GROUPS[2] if PHASE2_ENABLED else [])
@@ -1003,6 +1065,15 @@ def api_pv_submit():
         )
     sub = pv_submitted_at(group_id)
     return jsonify({"ok": True, "submitted_at": to_local(sub) if sub else None})
+
+
+@app.route("/api/pv-check", methods=["POST"])
+def api_pv_check():
+    """Vérifie le PV : valide les faits, signale le reste (juge / à corriger)."""
+    if not session.get("group_name"):
+        return jsonify({"error": "Groupe non défini"}), 401
+    group_id = get_or_create_group(session["group_name"])
+    return jsonify(pv_check(group_id))
 
 
 @app.route("/pv/apercu")

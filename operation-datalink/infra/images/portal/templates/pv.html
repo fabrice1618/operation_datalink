@@ -110,11 +110,19 @@
 
 <!-- Actions -->
 <div class="pv-actions">
+  <button type="button" class="btn" id="pv-check">▸ Vérifier le PV</button>
   <a class="btn" href="{{ url_for('pv_apercu') }}" target="_blank" rel="noopener">▸ Aperçu du PV</a>
   <button type="button" class="btn" id="pv-submit">▸ Transmettre au juge</button>
   <span id="pv-submit-status" class="text-bright" style="font-size: var(--fs-sm);">
     {% if submitted_at %}✓ PV transmis au juge — {{ submitted_at }}{% endif %}
   </span>
+</div>
+
+<!-- Bilan de vérification -->
+<div id="pv-check-report" class="ascii-frame pv-block" style="display: none; margin-top: var(--space-6);">
+  <div class="frame-title">Vérification du PV</div>
+  <div class="frame-right" id="pv-check-summary"></div>
+  <div class="frame-body" id="pv-check-body"></div>
 </div>
 
 <style>
@@ -135,6 +143,25 @@
     display: flex; gap: 1ch; flex-wrap: wrap; align-items: center;
     margin-top: var(--space-6);
   }
+  /* Bilan de vérification */
+  .chk-legend {
+    font-size: var(--fs-2xs); letter-spacing: .04em;
+    margin-bottom: var(--space-5); display: flex; gap: 1.5ch; flex-wrap: wrap;
+  }
+  .chk-section { margin-bottom: var(--space-5); }
+  .chk-section-title {
+    font-size: var(--fs-xs); letter-spacing: .12em; text-transform: uppercase;
+    margin-bottom: .4rem;
+  }
+  .chk-item {
+    display: flex; align-items: baseline; gap: 1ch;
+    padding: .15rem 0; font-size: var(--fs-sm);
+  }
+  .chk-ico { flex-shrink: 0; width: 2ch; text-align: center; }
+  .chk-note { font-size: var(--fs-2xs); }
+  .chk-ok     { color: var(--p-max);   text-shadow: var(--text-glow-strong); }
+  .chk-manual { color: var(--p-dim); }
+  .chk-error  { color: var(--p-bright); }
 </style>
 {% endblock %}
 
@@ -161,6 +188,56 @@
         .then(function (r) { flashSaved(field, r.ok); })
         .catch(function () { flashSaved(field, false); });
     });
+  });
+
+  // Vérification du PV : trois états par élément.
+  const CHK_ICONS = {
+    ok:     { sym: '✓', cls: 'chk-ok',     label: 'validé automatiquement' },
+    manual: { sym: '⊙', cls: 'chk-manual', label: 'à apprécier par le juge' },
+    error:  { sym: '✗', cls: 'chk-error',  label: 'à corriger / renseigner' },
+  };
+  document.getElementById('pv-check').addEventListener('click', function () {
+    const report = document.getElementById('pv-check-report');
+    const body = document.getElementById('pv-check-body');
+    const summary = document.getElementById('pv-check-summary');
+    report.style.display = '';
+    body.innerHTML = '<div class="text-faint" style="font-size: var(--fs-sm);">// vérification…</div>';
+    fetch('/api/pv-check', { method: 'POST' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.error) {
+          body.innerHTML = '<div class="text-bright term-blink">// ' + d.error + '</div>';
+          return;
+        }
+        const c = d.counts;
+        summary.innerHTML =
+          '<span class="chk-ok">✓ ' + c.ok + '</span> · ' +
+          '<span class="chk-manual">⊙ ' + c.manual + '</span> · ' +
+          '<span class="chk-error">✗ ' + c.error + '</span>';
+        var html = '<div class="chk-legend">';
+        Object.keys(CHK_ICONS).forEach(function (k) {
+          html += '<span class="' + CHK_ICONS[k].cls + '">' +
+                  CHK_ICONS[k].sym + ' ' + CHK_ICONS[k].label + '</span>';
+        });
+        html += '</div>';
+        d.sections.forEach(function (s) {
+          html += '<div class="chk-section"><div class="chk-section-title text-dim">' +
+                  s.label + '</div>';
+          s.items.forEach(function (it) {
+            const ic = CHK_ICONS[it.status] || CHK_ICONS.error;
+            html += '<div class="chk-item">' +
+              '<span class="chk-ico ' + ic.cls + '">' + ic.sym + '</span>' +
+              '<span>' + it.label + '</span>' +
+              (it.note ? '<span class="chk-note text-faint">// ' + it.note + '</span>' : '') +
+              '</div>';
+          });
+          html += '</div>';
+        });
+        body.innerHTML = html;
+      })
+      .catch(function () {
+        body.innerHTML = '<div class="text-bright term-blink">// erreur réseau</div>';
+      });
   });
 
   // Transmission du PV au juge.
