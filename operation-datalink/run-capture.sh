@@ -10,7 +10,12 @@ set -euo pipefail
 cd "$(dirname "$0")/infra"
 
 echo "[*] Construction des images..."
-docker compose build
+# Une seule cible par image distincte : cap-srv/cap-darkdrop partagent
+# datalink-capture et les postes partagent datalink-acteurs. Les construire
+# en parallele (bake/buildkit + image store containerd) provoque une course
+# "image ... already exists" sur le tag partage. On ne construit donc qu'un
+# service par image ; les autres reutilisent l'image deja batie au `up`.
+docker compose build srv darkdrop cap-srv poste-sofia portal
 
 echo "[*] Nettoyage d'une eventuelle execution precedente..."
 docker compose down -v --remove-orphans >/dev/null 2>&1 || true
