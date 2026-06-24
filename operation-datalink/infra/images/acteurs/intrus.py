@@ -4,7 +4,7 @@
 Timeline :
   - scan de ports SYN du serveur interne (signature visible : SYN -> RST)
   - ARP gratuit usurpant la passerelle .1 (positionnement MITM, defi bonus)
-  - intrusion : session telnet en clair (login + commandes + jeton d'acces)
+  - intrusion : session telnet en clair (login + mot de passe + commandes)
 """
 import socket
 import subprocess
@@ -53,7 +53,7 @@ def telnet_session():
     expect()              # "Password: "
     send("Adm1n-NordExport!")
     expect()              # message d'accueil + prompt
-    for cmd in ("id", "ls /root", "cat /root/notes.txt", "cat /root/access.txt", "exit"):
+    for cmd in ("id", "ls /root", "cat /root/notes.txt", "exit"):
         send(cmd)
         expect()
     s.close()

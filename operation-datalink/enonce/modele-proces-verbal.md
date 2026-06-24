@@ -25,36 +25,36 @@ Renseignez le tableau à partir des trames ARP, des requêtes DNS et des flux.
 
 ## 2. Preuves collectées
 
-Une fiche par preuve. Le jeton seul ne suffit pas : la **localisation** fait foi.
+Une fiche par preuve. Le fait seul ne suffit pas : la **localisation** fait foi.
 
 ### Preuve P1 — Coordination du trafic *(scellé 01)*
-- Jeton `DATALINK{ }` :
+- Faits relevés (suspects, transporteur, date de chargement, n° de colis) :
 - Localisation (n° trame, protocole, IP src → dst, port, horodatage) :
 - Ce que la preuve démontre :
 - Infraction caractérisée :
 
 ### Preuve P2 — Exfiltration de la base clients *(scellé 02)*
-- Jeton `DATALINK{ }` :
-- Localisation :
-- Nom du fichier / nombre de victimes estimé :
+- Nombre de clients impactés :
+- Identifiant / mot de passe FTP :
+- IP du serveur → IP du poste :
+- Localisation (n° trame, protocole, port, horodatage) :
 - Infraction caractérisée :
 
 ### Preuve P3 — Menaces / chantage *(scellé 01)*
-- Jeton `DATALINK{ }` :
-- Localisation :
-- Expéditeur, destinataire, montant exigé :
+- Faits relevés (destinataire, montant, mode de paiement, délai, pièce jointe) :
+- Localisation (n° trame, protocole, IP src → dst, port, horodatage) :
+- Expéditeur (en-tête `From:` vs émetteur réel) :
 - Infraction caractérisée :
 
 ### Preuve P4 — Intrusion dans le serveur *(scellé 01)*
-- Jeton `DATALINK{ }` :
 - IP de l'intrus / nombre de ports scannés :
 - Identifiant et mot de passe interceptés :
-- Localisation :
+- Localisation (scan + session telnet : n° trame, port, horodatage) :
 - Infraction caractérisée :
 
 ### Preuve P5 — Canal caché DNS *(scellé 02)*
-- Jeton `DATALINK{ }` :
-- Localisation :
+- Faits relevés (domaine et IP du C2, type d'enregistrement, sous-domaine, ordre décodé) :
+- Localisation (n° trame, protocole, IP src → dst, port, horodatage) :
 - Explication du mécanisme :
 - Infraction caractérisée :
 

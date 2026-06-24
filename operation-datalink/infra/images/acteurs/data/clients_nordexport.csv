@@ -1,5 +1,5 @@
-# NORDEXPORT SARL - EXPORT CONFIDENTIEL - ref(envers):}SERTLIFXE_DPGR_STNEILC_3124{KNILATAD
-# genere le 2026-05-12 02:41 - 4213 enregistrements (extrait)
+# NORDEXPORT SARL - EXPORT CONFIDENTIEL - base clients
+# genere le 2026-05-12 02:41 - 10 enregistrements
 id,nom,prenom,email,telephone,iban,solde_eur
 1001,Moreau,Camille,c.moreau@example.com,0612345678,FR7630006000011234567890189,12450.00
 1002,Petit,Lucas,lucas.petit@example.net,0623456789,FR7612548029981234567890123,3320.50

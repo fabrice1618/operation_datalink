@@ -78,6 +78,16 @@ def main():
     except Exception:
         pass
 
+    # --- Leurre logistique anodin dans le chat (scelle 01) ---
+    # Note interne legitime : un AUTRE transporteur, une AUTRE date et un AUTRE
+    # numero de colis. Sert a piEger qui releve les faits sans les rattacher a
+    # la conversation des deux suspects (.20 / .10).
+    sleep_until(t0, 20)
+    try:
+        chat("IT-Support", "Rappel logistique : tournee habituelle Transports Brel le 12/05, colis interne RH-0090.")
+    except Exception:
+        pass
+
     # --- Message anodin dans le chat : contient le LEURRE (scelle 01) ---
     sleep_until(t0, 24)
     try:

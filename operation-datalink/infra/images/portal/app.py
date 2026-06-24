@@ -1,7 +1,9 @@
 import os
+import re
 import hashlib
 import sqlite3
 import pathlib
+import unicodedata
 import markdown
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
@@ -75,6 +77,118 @@ def _load_flag_hash(phase: str) -> str:
 
 # Empreintes SHA-256 des flags attendus (jamais le flag en clair).
 FLAG_HASHES = {p: _load_flag_hash(p) for p in ("P0", "P1", "P2", "P3", "P4", "P5", "P6")}
+
+# Réquisitions « relevé d'enquête » — depuis cette version, toute la phase 1 (R1 à
+# R5) relève des faits lus dans le flux plutôt qu'une chasse au jeton :
+#   R1 — chat HTTP (scellé 01)        R2 — transfert FTP (scellé 02)
+#   R3 — e-mail SMTP (scellé 01)      R4 — scan + telnet (scellé 01)
+#   R5 — canal caché DNS (scellé 02)
+# Chaque champ a sa propre empreinte ; l'étape n'est validée (et versée au
+# classement) que lorsque TOUS ses champs sont corrects, et seuls les champs
+# corrects sont verrouillés.
+#
+# Format d'un champ : (clé, libellé, indice, exemple). Les clés sont uniques
+# toutes réquisitions confondues (la table r1_fields est partagée).
+RELEVE_FIELDS = {
+    "P1": [
+        ("suspects",     "Noms des suspects",
+         "Les deux personnes qui coordonnent la livraison — prénom + nom, séparés par une virgule.",
+         "Prénom Nom, Prénom Nom"),
+        ("transporteur", "Transporteur",
+         "La société chargée d'acheminer la marchandise.",
+         "Société"),
+        ("date",         "Date de chargement",
+         "Au format JJ/MM/AAAA.",
+         "JJ/MM/AAAA"),
+        ("colis",        "Numéro de colis",
+         "La référence du colis, telle qu'écrite dans le chat.",
+         "réf. colis"),
+    ],
+    "P2": [
+        ("clients",    "Clients impactés",
+         "Le nombre d'enregistrements de clients contenus dans le fichier reconstitué.",
+         "nombre"),
+        ("ftp_user",   "Identifiant FTP",
+         "Le compte utilisé pour ouvrir la session sur le serveur de dépôt.",
+         "login"),
+        ("ftp_pass",   "Mot de passe FTP",
+         "Le mot de passe transmis en clair sur le canal de contrôle.",
+         "mot de passe"),
+        ("ip_serveur", "IP du serveur",
+         "L'adresse du serveur externe qui reçoit le fichier (destination du transfert).",
+         "0.0.0.0"),
+        ("ip_user",    "IP de l'utilisateur",
+         "L'adresse du poste interne qui envoie le fichier (source du transfert).",
+         "0.0.0.0"),
+    ],
+    "P3": [
+        ("destinataire", "Destinataire du mail",
+         "L'adresse à qui le message de menace est adressé (RCPT TO).",
+         "nom@domaine"),
+        ("montant",      "Montant exigé",
+         "La somme réclamée, en chiffres (lue dans la pièce jointe décodée).",
+         "nombre"),
+        ("crypto",       "Mode de paiement",
+         "La monnaie dans laquelle la rançon doit être versée.",
+         "monnaie"),
+        ("delai",        "Délai imparti",
+         "Le temps laissé pour répondre aux conditions.",
+         "ex. 24 heures"),
+        ("piece_jointe", "Nom de la pièce jointe",
+         "Le nom de fichier joint au message (en-tête de la pièce jointe).",
+         "fichier.ext"),
+    ],
+    "P4": [
+        ("ip_intrus",  "IP de l'intrus",
+         "L'adresse de la machine qui scanne puis se connecte au serveur.",
+         "0.0.0.0"),
+        ("nb_ports",   "Ports scannés",
+         "Le nombre de ports testés par la machine pendant la reconnaissance.",
+         "nombre"),
+        ("admin_user", "Identifiant d'administration",
+         "Le compte utilisé pour ouvrir la session telnet sur le serveur.",
+         "login"),
+        ("admin_pass", "Mot de passe",
+         "Le mot de passe transmis en clair lors de la connexion telnet.",
+         "mot de passe"),
+    ],
+    "P5": [
+        ("c2_domaine",     "Domaine du C2",
+         "Le domaine du serveur externe avec lequel le poste dialogue.",
+         "domaine.tld"),
+        ("c2_ip",          "IP résolue du C2",
+         "L'adresse IP renvoyée pour ce domaine (réponse A).",
+         "0.0.0.0"),
+        ("dns_type",       "Type d'enregistrement détourné",
+         "Le type de requête DNS qui sert de canal caché.",
+         "ex. A / TXT / MX"),
+        ("c2_sousdomaine", "Sous-domaine de contrôle",
+         "Le nom complet interrogé pour le canal caché (FQDN).",
+         "sous.domaine.tld"),
+        ("c2_ordre",       "Ordre transmis (champ key=)",
+         "La valeur du champ key= de la réponse TXT, décodée du base64.",
+         "valeur décodée"),
+    ],
+}
+RELEVE_FIELD_KEYS = {p: [k for k, *_ in fields] for p, fields in RELEVE_FIELDS.items()}
+
+
+def _load_releve_hashes(phase: str, field: str) -> set:
+    """Empreintes SHA-256 acceptées pour un champ de relevé.
+
+    On admet plusieurs valeurs par champ (variantes de saisie : 14/05/2026 ou
+    « 14 mai 2026 »…), séparées par des espaces/virgules dans la variable
+    d'environnement FLAG_<PHASE>_<CHAMP>_SHA256. Comme pour les jetons, le portail
+    ne connaît jamais la réponse en clair, seulement son empreinte normalisée.
+    """
+    raw = os.environ.get(f"FLAG_{phase}_{field.upper()}_SHA256", "")
+    return {h.strip().lower() for h in re.split(r"[\s,]+", raw) if h.strip()}
+
+
+RELEVE_FIELD_HASHES = {
+    phase: {k: _load_releve_hashes(phase, k) for k in keys}
+    for phase, keys in RELEVE_FIELD_KEYS.items()
+}
 
 PHASE_LABELS = {
     "P0": "Réquisition 0 — Prise en main (entraînement)",
@@ -160,6 +274,19 @@ def init_db():
                 submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (group_id) REFERENCES groups(id)
             );
+            -- Champs de relevé correctement versés (présence = champ validé).
+            -- Partagée par toutes les réquisitions « relevé d'enquête » (R1 à R5) ;
+            -- les clés de champ sont uniques d'une réquisition à l'autre. L'étape
+            -- n'entre dans flag_submissions que lorsque TOUS les champs de la
+            -- réquisition sont présents pour l'équipe.
+            CREATE TABLE IF NOT EXISTS r1_fields (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                group_id INTEGER NOT NULL,
+                field TEXT NOT NULL,
+                submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(group_id, field),
+                FOREIGN KEY (group_id) REFERENCES groups(id)
+            );
         """)
 
 
@@ -185,6 +312,42 @@ def validate_flag(flag_text: str, phase: str) -> bool:
     return bool(expected) and sha256_hex(flag_text.strip()) == expected
 
 
+def _normalize(text: str) -> str:
+    """Met une réponse libre sous forme canonique pour la comparaison.
+
+    Insensible à la casse, aux accents et aux espaces multiples ; retire la
+    ponctuation de bord. Les empreintes attendues sont calculées sur cette même
+    forme (cf. gen-releve-hashes.py) : « Transports Caron », « transports  caron » et
+    « TRANSPORTS CARON. » sont donc équivalents.
+    """
+    s = unicodedata.normalize("NFKD", text)
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    s = s.lower().strip()
+    s = re.sub(r"\s+", " ", s)
+    return s.strip(" \t\r\n.,;:!?\"'`")
+
+
+def _normalize_suspects(text: str) -> str:
+    """Forme canonique d'une liste de noms, indépendante de l'ordre.
+
+    Découpe sur les séparateurs usuels (virgule, « et », « & »…), normalise
+    chaque nom, trie puis recolle : « Sofia Lenoir, Marc Vidal » et
+    « Marc Vidal et Sofia Lenoir » donnent la même empreinte.
+    """
+    parts = re.split(r"[,;/&\n]+|\bet\b", text, flags=re.IGNORECASE)
+    names = sorted(n for n in (_normalize(p) for p in parts) if n)
+    return "|".join(names)
+
+
+def validate_releve_field(phase: str, field: str, value: str) -> bool:
+    """Vrai si la réponse d'un champ de relevé correspond à une empreinte attendue."""
+    expected = RELEVE_FIELD_HASHES.get(phase, {}).get(field)
+    if not expected:
+        return False
+    canon = _normalize_suspects(value) if field == "suspects" else _normalize(value)
+    return bool(canon) and sha256_hex(canon) in expected
+
+
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -198,6 +361,15 @@ def render_md(slug: str) -> str:
         path.read_text(encoding="utf-8"),
         extensions=["tables", "fenced_code", "nl2br"],
     )
+
+
+def releve_solved_fields(group_id: int) -> set:
+    """Ensemble des champs de relevé déjà validés par l'équipe (toutes réquisitions)."""
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT field FROM r1_fields WHERE group_id = ?", (group_id,)
+        ).fetchall()
+    return {r["field"] for r in rows}
 
 
 def found_phases(group_name: str) -> set:
@@ -426,12 +598,14 @@ def preuves():
     if redir:
         return redir
     group = session["group_name"]
+    group_id = get_or_create_group(group)
     phases = {p: PHASE_LABELS[p] for p in PHASE_GROUPS[1]}
     found = found_phases(group) & set(phases)
     return render_template(
         "preuves.html",
         title="Saisie des preuves — Phase 1",
         phases=phases, found=found, group=group, phase_num=1, cells=24,
+        releve_fields=RELEVE_FIELDS, releve_done=releve_solved_fields(group_id),
     )
 
 
@@ -466,6 +640,70 @@ def preuves2():
     )
 
 
+@app.route("/api/releve", methods=["POST"])
+def api_releve():
+    """Validation des faits d'une réquisition « relevé d'enquête » (R1 à R5).
+
+    Chaque champ est vérifié indépendamment : seuls les champs corrects sont
+    enregistrés (donc verrouillés). L'étape n'est versée au dossier (et au
+    classement) que lorsque TOUS les champs de la réquisition sont validés.
+    """
+    if not session.get("group_name"):
+        return jsonify({"error": "Groupe non défini"}), 401
+    data = request.get_json(force=True, silent=True) or {}
+    phase = (data.get("phase") or "").strip().upper()
+    fields = data.get("fields")
+    if phase not in RELEVE_FIELDS or not isinstance(fields, dict):
+        return jsonify({"error": "Requête invalide"}), 400
+
+    phase_keys = RELEVE_FIELD_KEYS[phase]
+    group_id = get_or_create_group(session["group_name"])
+    results = {}
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT field FROM r1_fields WHERE group_id = ?", (group_id,)
+        ).fetchall()
+        solved = {r["field"] for r in rows}
+
+        for key in phase_keys:
+            if key in solved:
+                results[key] = True            # déjà acquis : verrouillé
+                continue
+            value = (fields.get(key) or "").strip()
+            if not value:
+                results[key] = None            # non soumis cette fois
+                continue
+            ok = validate_releve_field(phase, key, value)
+            results[key] = ok
+            if ok:
+                conn.execute(
+                    "INSERT OR IGNORE INTO r1_fields (group_id, field) VALUES (?,?)",
+                    (group_id, key),
+                )
+                solved.add(key)
+
+        all_correct = set(phase_keys) <= solved
+        if all_correct:
+            # On verse l'étape au dossier (et au classement) une seule fois.
+            done = conn.execute(
+                "SELECT id FROM flag_submissions WHERE group_id = ? AND correct = 1 AND phase = ?",
+                (group_id, phase),
+            ).fetchone()
+            if not done:
+                conn.execute(
+                    "INSERT INTO flag_submissions (group_id, phase, flag_text, correct) VALUES (?,?,?,?)",
+                    (group_id, phase, sha256_hex(f"{phase}_FIELDS_OK"), 1),
+                )
+
+    return jsonify({
+        "results": results,
+        "solved": sorted(solved & set(phase_keys)),
+        "all_correct": all_correct,
+        "phase": phase,
+        "label": PHASE_LABELS[phase],
+    })
+
+
 @app.route("/api/flag", methods=["POST"])
 def api_flag():
     if not session.get("group_name"):
@@ -479,6 +717,10 @@ def api_flag():
     # peut pas vérifier qu'elle est versée dans la bonne case.
     if phase not in PHASE_LABELS:
         return jsonify({"error": "Réquisition inconnue"}), 400
+    # Les réquisitions « relevé d'enquête » (R1 à R5) ne sont plus des chasses au
+    # jeton : elles passent par /api/releve, pas par la soumission de jeton.
+    if phase in RELEVE_FIELDS:
+        return jsonify({"error": "Cette réquisition se valide via son formulaire d'enquête."}), 400
 
     group_name = session["group_name"]
     group_id = get_or_create_group(group_name)

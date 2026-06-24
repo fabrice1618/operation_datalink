@@ -5,9 +5,12 @@ pour vérifier sans Wireshark). Commandes à lancer depuis `scelles/`.
 
 ## Vue d'ensemble rapide
 
-Depuis cette version, **aucun vrai jeton n'apparaît en clair** dans les scellés :
-chaque preuve impose de reconstituer le flux du protocole *puis* de décoder. La
-recherche naïve ne renvoie donc **que le leurre** (cf. « Bruit de fond & leurre ») :
+Depuis cette version, **toute la phase 1 (R1 à R5) est un relevé d'enquête** :
+aucun jeton à chasser, on reconstitue le flux du protocole — parfois on **décode**
+le base64 (R3, R5) — puis on relève les **faits** demandés, à saisir dans le
+formulaire d'enquête du portail (une réquisition n'est validée que si **tous** ses
+champs sont exacts). La recherche naïve ne renvoie donc **que le leurre** (cf.
+« Bruit de fond & leurre ») :
 
 ```bash
 strings scelle-01_serveur-interne.pcap scelle-02_passerelle.pcap \
@@ -15,82 +18,102 @@ strings scelle-01_serveur-interne.pcap scelle-02_passerelle.pcap \
 # => DATALINK{ARCHIVE_SAUVEGARDE_2025}   (LEURRE — à rejeter)
 ```
 
-Une transformation distincte par preuve (pour qu'aucune recherche unique ne les
-révèle toutes) :
+Chaque preuve est un relevé de faits, avec sa manœuvre propre :
 
-| Preuve | Protocole | Camouflage | Décodage |
-|--------|-----------|------------|----------|
-| P1 | HTTP chat | 2 moitiés + ROT13     | recoller + ROT13 |
-| P2 | FTP       | jeton écrit à l'envers | lire à l'envers (`rev`) |
-| P3 | SMTP      | pièce jointe base64    | `base64 -d` |
-| P4 | Telnet    | jeton en hexadécimal   | `xxd -r -p` |
-| P5 | DNS TXT   | valeur en base64       | `base64 -d` |
+| Preuve | Protocole | Faits à relever | Manœuvre |
+|--------|-----------|-----------------|----------|
+| P1 | HTTP chat | suspects, transporteur, date, n° de colis | lire la conversation, écarter le leurre |
+| P2 | FTP       | clients, identifiant/mot de passe, IP serveur/poste | canal de contrôle + reconstituer le fichier |
+| P3 | SMTP      | destinataire, montant, paiement, délai, pièce jointe | flux TCP + `base64 -d` de la pièce jointe |
+| P4 | Telnet    | IP intrus, nb de ports, identifiant, mot de passe | compter les SYN + suivre le flux telnet |
+| P5 | DNS TXT   | domaine/IP C2, type, sous-domaine, ordre décodé | isoler la TXT + `base64 -d` du champ `key=` |
 
 ---
 
-## P1 — Coordination (HTTP, scellé 01) → `DATALINK{RDV_QUAI17_14MAI_0300}`
+## P1 — Coordination (HTTP, scellé 01) → relevé d'enquête (4 faits)
 
-Le code n'est plus donné en clair : Sofia (`10.13.37.20`) l'envoie en **deux
-moitiés**, chacune **chiffrée en ROT13**. Il faut reconstituer le chat, recoller
-les deux moitiés puis appliquer ROT13.
+Plus de jeton : on **reconstitue la conversation** entre Sofia (`10.13.37.20`) et
+Marc (`10.13.37.10`) et on relève quatre faits, à saisir dans le formulaire
+d'enquête du portail (l'étape n'est validée que si les 4 sont exacts) :
 
-**Wireshark :** filtre `http` → *Suivre → Flux HTTP* sur un `POST /post`. Les deux
-messages utiles (de `10.13.37.20`) :
-- `Code (1/2, ROT13) : QNGNYVAX{EQI_DH`
-- `Code (2/2, ROT13) : NV17_14ZNV_0300}`
+| Champ | Valeur attendue | Alias acceptés |
+|-------|-----------------|----------------|
+| Suspects | **Sofia Lenoir** + **Marc Vidal** | ordre indifférent |
+| Transporteur | **Transports Caron** | « Caron » |
+| Date de chargement | **14/05/2026** | « 14/5/2026 », « 14 mai 2026 » |
+| N° de colis | **NX-4417** | « nx4417 » |
+
+**Wireshark :** filtre `http` → *Suivre → Flux HTTP* sur les `POST /post`.
 
 **tcpdump :**
 ```bash
 tcpdump -A -r scelle-01_serveur-interne.pcap 'tcp port 80' | grep -o 'texte=[^&]*'
 ```
-Recollage + ROT13 :
-```bash
-echo 'QNGNYVAX{EQI_DHNV17_14ZNV_0300}' | tr 'A-Za-z' 'N-ZA-Mn-za-m'
-# => DATALINK{RDV_QUAI17_14MAI_0300}
-```
-Le corps du POST est aussi URL-encodé (`%7B`/`%7D`…) — ce que Wireshark/`tcpdump`
-restituent ; le ROT13 porte sur le texte une fois recollé.
+Les messages utiles proviennent de `10.13.37.20` (Sofia) et `10.13.37.10` (Marc) :
+transporteur « Transports Caron », chargement « nuit du 14 mai à 03h00 /
+14/05/2026 », colis « NX-4417 ». Le corps du POST est URL-encodé (`%7B`/`%7D`…),
+restitué par Wireshark/`tcpdump`.
 
-> ⚠️ Un message du chat signé `IT-Support` contient `DATALINK{ARCHIVE_SAUVEGARDE_2025}`
-> en clair : c'est le **leurre**, pas le code de rendez-vous.
+> ⚠️ **Leurre :** un message signé `IT-Support` évoque une *autre* tournée —
+> **Transports Brel**, le **12/05**, colis **RH-0090**. À écarter : ce ne sont
+> pas les faits des suspects. (Le même poste plante aussi le faux jeton
+> `DATALINK{ARCHIVE_SAUVEGARDE_2025}`, sans rapport avec R1.)
 
 ---
 
-## P2 — Exfiltration (FTP, scellé 02) → `DATALINK{4213_CLIENTS_RGPD_EXFILTRES}`
+## P2 — Exfiltration (FTP, scellé 02) → relevé d'enquête (5 faits)
 
-**Wireshark :** filtre `ftp` (canal de contrôle : `USER`, `PASS`, `STOR`).
-Puis `ftp-data`, ou *Fichier → Exporter des objets* / *Suivre le flux TCP* sur
-la connexion de données (ports 30000-30009) pour reconstituer le CSV.
+Plus de jeton : on **reconstitue le transfert FTP** de Marc (`10.13.37.10`) vers
+darkdrop (`10.13.37.200`) et on relève cinq éléments, à saisir dans le formulaire
+d'enquête du portail (l'étape n'est validée que si les 5 sont exacts) :
+
+| Champ | Valeur attendue |
+|-------|-----------------|
+| Clients impactés | **10** (enregistrements du CSV reconstitué) |
+| Identifiant FTP | **depot** |
+| Mot de passe FTP | **Pr1nt3mps2026!** |
+| IP du serveur | **10.13.37.200** (destination) |
+| IP de l'utilisateur | **10.13.37.10** (source) |
+
+**Wireshark :** filtre `ftp` (canal de contrôle : `USER`, `PASS`, `STOR` — révèle
+l'identifiant, le mot de passe et les deux IP). Puis `ftp-data`, ou *Fichier →
+Exporter des objets* / *Suivre le flux TCP* sur la connexion de données
+(ports 30000-30009) pour reconstituer le CSV : son en-tête donne le volume.
 
 **tcpdump :**
 ```bash
 tcpdump -A -r scelle-02_passerelle.pcap 'tcp port 21' | grep -E 'USER|PASS|STOR'
-tcpdump -A -r scelle-02_passerelle.pcap 'tcp portrange 30000-30010' | grep -A20 'EXPORT CONFIDENTIEL'
+tcpdump -nn -r scelle-02_passerelle.pcap 'tcp port 21' | head   # IP source / destination
+tcpdump -A -r scelle-02_passerelle.pcap 'tcp portrange 30000-30010' | grep -A2 'EXPORT CONFIDENTIEL'
 ```
-Identifiants : `depot` / `Pr1nt3mps2026!`. La 1re ligne du CSV porte le jeton
-**inscrit à l'envers** : `# ... ref(envers):}SERTLIFXE_DPGR_STNEILC_3124{KNILATAD`.
-Le relire à l'envers :
-```bash
-echo '}SERTLIFXE_DPGR_STNEILC_3124{KNILATAD' | rev
-# => DATALINK{4213_CLIENTS_RGPD_EXFILTRES}
-```
-(≈ 4213 clients, IBAN inclus — la 2ᵉ ligne d'en-tête confirme le volume.)
+Identifiants : `depot` / `Pr1nt3mps2026!`. Le fichier reconstitué compte
+**10 enregistrements** de clients (IBAN, e-mail, état civil inclus). Plus aucun
+jeton n'est inscrit dans le fichier.
 
 ---
 
-## P3 — Menaces (SMTP, scellé 01) → `DATALINK{RANCON_50000E_BTC}`
+## P3 — Menaces (SMTP, scellé 01) → relevé d'enquête (5 faits)
 
-**Wireshark :** filtre `smtp` → *Suivre le flux TCP*. Repérer le bloc base64
-(`Content-Transfer-Encoding: base64`, pièce jointe `conditions_diffusion.txt`),
-le copier et le décoder.
+**Wireshark :** filtre `smtp` → *Suivre le flux TCP*. Dans les en-têtes, relever le
+**destinataire** (`RCPT TO:<directeur@groupe-rival.example>`) et le **nom de la
+pièce jointe** (`conditions_diffusion.txt`) ; le **délai** (72 heures) est dans le
+corps du message. Repérer le bloc base64 (`Content-Transfer-Encoding: base64`), le
+copier et le décoder pour lire le **montant** et le **mode de paiement**.
 
 **tcpdump :**
 ```bash
 tcpdump -A -r scelle-01_serveur-interne.pcap 'tcp port 25' \
   | grep -oE '^[A-Za-z0-9+/]{20,}={0,2}$' | tr -d '\n' | base64 -d
 ```
-Donne : montant 50 000 EUR en BTC, délai 72 h, et
-`Reference de dossier : DATALINK{RANCON_50000E_BTC}`.
+Donne : montant **50 000 EUR**, paiement en **BTC**, délai **72 heures**.
+
+| Champ | Valeur attendue | Alias acceptés |
+|-------|-----------------|----------------|
+| Destinataire | **directeur@groupe-rival.example** | — |
+| Montant exigé | **50000** | « 50 000 » |
+| Mode de paiement | **BTC** | « bitcoin » |
+| Délai | **72 heures** | « 72h », « 72 h », « 72 » |
+| Pièce jointe | **conditions_diffusion.txt** | — |
 
 > 🎯 **Bonus — usurpation.** L'en-tête `From:` annonce `m.vidal@nordexport.lan`
 > (Marc), mais l'enveloppe `MAIL FROM:<s.lenoir@nordexport.lan>` et surtout l'**IP
@@ -99,28 +122,27 @@ Donne : montant 50 000 EUR en BTC, délai 72 h, et
 
 ---
 
-## P4 — Intrusion (scan + telnet, scellé 01) → `DATALINK{STAD_ROOT_NORDEXPORT}`
+## P4 — Intrusion (scan + telnet, scellé 01) → relevé d'enquête (4 faits)
 
 **Scan.** Wireshark : `tcp.flags.syn==1 && tcp.flags.ack==0 && ip.src==10.13.37.66`
-→ une rafale de SYN vers des ports successifs = scan.
+→ une rafale de SYN vers des ports successifs = scan. **IP intrus : `10.13.37.66`.**
 ```bash
 tcpdump -nn -r scelle-01_serveur-interne.pcap \
   'tcp[tcpflags] & (tcp-syn|tcp-ack) == tcp-syn and src host 10.13.37.66' | wc -l
-# → 102 paquets (ports 1-100 + 443)
+# → 102 paquets (ports 1-100 + 443 = 101 ports distincts)
 ```
+Le portail accepte **101** (ports distincts visés) comme **102** (paquets SYN).
 
-**Intrusion telnet.** Wireshark : `telnet` → *Suivre le flux TCP*. La session
-montre `cat /root/notes.txt` (qui révèle l'encodage) puis `cat /root/access.txt`
-qui n'affiche **pas** le jeton en clair, mais une **chaîne hexadécimale** :
-```
-444154414c494e4b7b535441445f524f4f545f4e4f52444558504f52547d
-```
-La décoder :
-```bash
-echo 444154414c494e4b7b535441445f524f4f545f4e4f52444558504f52547d | xxd -r -p
-# => DATALINK{STAD_ROOT_NORDEXPORT}
-```
-Login `admin` / `Adm1n-NordExport!`. IP intrus : `10.13.37.66`.
+**Intrusion telnet.** Wireshark : `telnet` → *Suivre le flux TCP*. La session,
+entièrement en clair, montre la connexion d'administration :
+login **`admin`** / mot de passe **`Adm1n-NordExport!`**.
+
+| Champ | Valeur attendue | Alias acceptés |
+|-------|-----------------|----------------|
+| IP de l'intrus | **10.13.37.66** | — |
+| Ports scannés | **101** | « 102 » |
+| Identifiant | **admin** | — |
+| Mot de passe | **Adm1n-NordExport!** | — |
 
 > 🎯 **Bonus — MITM / ARP.** Juste avant le telnet, filtrer `arp` : `10.13.37.66`
 > émet des ARP gratuits annonçant être la passerelle `10.13.37.1` (« is-at » vers
@@ -129,18 +151,30 @@ Login `admin` / `Adm1n-NordExport!`. IP intrus : `10.13.37.66`.
 
 ---
 
-## P5 — Canal caché (DNS, scellé 02) → `DATALINK{TUNNEL_DNS_C2_ACTIF}`
+## P5 — Canal caché (DNS, scellé 02) → relevé d'enquête (5 faits)
 
-**Wireshark :** filtre `dns`. Au milieu de requêtes A (dont du **bruit** :
+**Wireshark :** filtre `dns`. La réponse **A** pour `darkdrop-exchange.net` donne
+son IP (**`10.13.37.200`**). Au milieu de requêtes A (dont du **bruit** :
 `meteo.example`, `maj.intranet.lan`), repérer la requête **TXT**
 `status.darkdrop-exchange.net` et sa réponse. La valeur du champ `key=` est
-**encodée en base64** :
+**encodée en base64** : la décoder pour lire l'**ordre transmis** par le C2.
 ```bash
 tcpdump -A -r scelle-02_passerelle.pcap 'udp port 53' | grep -a 'key='
-# v=c2; cmd=exfil; key=REFUQUxJTkt7VFVOTkVMX0ROU19DMl9BQ1RJRn0=
-echo 'REFUQUxJTkt7VFVOTkVMX0ROU19DMl9BQ1RJRn0=' | base64 -d
-# => DATALINK{TUNNEL_DNS_C2_ACTIF}
+# v=c2; cmd=order; key=cHVyZ2Utam91cm5hdXg=
+echo 'cHVyZ2Utam91cm5hdXg=' | base64 -d
+# => purge-journaux
 ```
+
+| Champ | Valeur attendue | Alias acceptés |
+|-------|-----------------|----------------|
+| Domaine du C2 | **darkdrop-exchange.net** | — |
+| IP résolue | **10.13.37.200** | — |
+| Type détourné | **TXT** | — |
+| Sous-domaine | **status.darkdrop-exchange.net** | — |
+| Ordre décodé | **purge-journaux** | « purge journaux », « purge-logs » |
+
+Le DNS, souvent autorisé en sortie et peu inspecté, permet de faire transiter
+commandes/données discrètement (tunneling / canal de C2).
 
 ---
 
@@ -167,10 +201,12 @@ un `GET /` sur la messagerie, un mail interne banal (« Sauvegarde hebdomadaire 
 Objectif : forcer le **filtrage** (on ne peut plus tout trouver à l'œil nu).
 
 Il poste aussi dans le chat un message anodin contenant le **leurre**
-`DATALINK{ARCHIVE_SAUVEGARDE_2025}` — le seul littéral `DATALINK{…}` en clair des
-captures. Un binôme qui le rend **sans localisation cohérente** (c'est une simple
-« référence d'archive » d'un message de maintenance, sans rapport avec une
-infraction) doit être sanctionné : « la localisation fait foi ».
+`DATALINK{ARCHIVE_SAUVEGARDE_2025}` — le seul littéral `DATALINK{…}` des captures.
+La phase 1 ne se valide plus par soumission de jeton (relevés de faits) : ce leurre
+ne piège donc que le réflexe « rechercher DATALINK ». Un binôme qui le **cite comme
+preuve au PV**, sans localisation cohérente (c'est une simple « référence
+d'archive » d'un message de maintenance, sans rapport avec une infraction), doit
+être sanctionné : « la localisation fait foi ».
 
 ## Corrélation inter-scellés (défi bonus)
 

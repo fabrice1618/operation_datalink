@@ -56,10 +56,14 @@ def main():
         time.sleep(0.4)
 
     # --- Reponses dans le chat (P1) ---
-    sleep_until(t0, 12)
-    chat("Marc", "Point de chute confirme. J'attends le code.")
-    sleep_until(t0, 25)
-    chat("Marc", "Recu les deux morceaux. Je recolle, je decode (ROT13) et je transmets.")
+    # Marc corrobore les faits de la livraison : son poste (.10) confirme le
+    # transporteur, la date et le numero de colis annonces par Sofia (.20).
+    sleep_until(t0, 11)
+    chat("Marc", "Marc Vidal, bien en ligne. Vas-y, je note tout.")
+    sleep_until(t0, 18)
+    chat("Marc", "Transports Caron, ok. On part bien sur la nuit du 14/05 a 03h00 ?")
+    sleep_until(t0, 28)
+    chat("Marc", "Recu. Colis NX-4417 note, je prepare le bordereau.")
 
     # --- Exfiltration de la base clients par FTP (P2) ---
     sleep_until(t0, 30)

@@ -29,12 +29,12 @@ m'en rapporter les preuves matérielles.** Chaque preuve devra être :
 2. **expliquée** (que démontre-t-elle ? quelle infraction caractérise-t-elle ?) ;
 3. **consignée** dans le procès-verbal type fourni (`modele-proces-verbal.md`).
 
-Pour chaque preuve, un **jeton de scellé** au format `DATALINK{...}` est présent
-dans les données — mais **rarement en clair** : il faut le plus souvent
-reconstituer le flux du protocole, puis le **décoder**. Il atteste que vous avez
-bien mis la main sur la pièce, et non sur une simple impression. Soyez vigilants :
-le trafic comporte du **bruit** légitime et un éventuel **leurre** ; seule une
-pièce correctement **localisée** et cohérente est recevable.
+Chaque réquisition est un **relevé d'enquête** : il ne s'agit pas de chasser un
+jeton mais de **reconstituer le flux** du protocole, parfois d'en **décoder** le
+contenu (base64), puis de **relever les faits** demandés et de les saisir dans le
+formulaire d'enquête du portail. Soyez vigilants : le trafic comporte du **bruit**
+légitime et un **leurre** (un faux `DATALINK{...}` planté dans un message anodin) ;
+seul un fait correctement **localisé** et cohérent avec une infraction est recevable.
 
 ⚠️ **Rappel déontologique (chaîne de preuve).** Ne travaillez que sur des copies
 des scellés. Notez systématiquement *où* vous avez trouvé chaque élément : une

@@ -19,11 +19,12 @@ ZONE_A = {
     "maj.intranet.lan.": "10.13.37.50",
 }
 
-# Canal cache : la reponse TXT transporte le jeton de controle. La valeur du
-# champ "key" n'est PAS en clair : elle est encodee en base64. Il faut isoler la
-# reponse TXT puis decoder la chaine situee apres "key=".
-_FLAG_P5 = "DATALINK{TUNNEL_DNS_C2_ACTIF}"
-TXT_TOKEN = "v=c2; cmd=exfil; key=" + base64.b64encode(_FLAG_P5.encode()).decode()
+# Canal cache : la reponse TXT transporte un ordre du C2. La valeur du champ
+# "key" n'est PAS en clair : elle est encodee en base64. L'enquete (P5 = releve
+# d'enquete, plus de jeton) isole la reponse TXT puis decode la chaine situee
+# apres "key=" pour relever l'ordre transmis.
+_C2_ORDER = "purge-journaux"
+TXT_TOKEN = "v=c2; cmd=order; key=" + base64.b64encode(_C2_ORDER.encode()).decode()
 TXT_NAME = "status.darkdrop-exchange.net."
 
 

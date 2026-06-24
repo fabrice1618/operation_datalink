@@ -23,7 +23,8 @@
 <div class="flags-grid">
   {% for phase, label in phases.items() %}
   {% set is_found = phase in found %}
-  <div class="ascii-frame" id="card-{{ phase }}">
+  {% set is_releve = (releve_fields is defined and phase in releve_fields) %}
+  <div class="ascii-frame" id="card-{{ phase }}"{% if is_releve and not is_found %} style="grid-column: 1 / -1;"{% endif %}>
     <div class="frame-title">{{ label }}</div>
     <div class="frame-right">
       {% if is_found %}
@@ -37,6 +38,40 @@
       {% if is_found %}
       <div class="text-bright" style="font-size: var(--fs-sm);">
         ✓ Preuve versée au dossier.
+      </div>
+      {% elif is_releve %}
+      {% set rfields = releve_fields[phase] %}
+      {# Réquisition « relevé d'enquête » : plusieurs faits lus dans le flux. #}
+      <div class="text-faint" style="font-size: var(--fs-xs); margin-bottom: .7rem;">
+        Reconstituez le flux et relevez les {{ rfields | length }} éléments.
+        L'étape se valide quand ils sont tous exacts ; seuls les champs corrects sont verrouillés.
+      </div>
+      <div class="releve-grid">
+        {% for key, fname, fhint, fph in rfields %}
+        {% set fdone = key in releve_done %}
+        <div class="releve-field" id="releve-{{ key }}">
+          <div class="releve-label">
+            <span class="text-bright">{{ fname }}</span>
+            <span class="badge {{ 'badge-success' if fdone else 'badge-pending' }}" id="releve-badge-{{ key }}">{{ 'OK' if fdone else '··' }}</span>
+          </div>
+          <div class="text-faint" style="font-size: var(--fs-xs); margin: .15rem 0 .35rem;">{{ fhint }}</div>
+          <div class="releve-cell" id="releve-cell-{{ key }}">
+            {% if fdone %}
+            <div class="text-bright" style="font-size: var(--fs-sm);">✓ versé au dossier</div>
+            {% else %}
+            <div class="prompt-field">
+              <span class="prompt">›</span>
+              <input type="text" id="releve-input-{{ key }}"
+                     placeholder="{{ fph }}" autocomplete="off" spellcheck="false">
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div style="display:flex; gap:1ch; align-items:center; margin-top: var(--space-4); flex-wrap: wrap;">
+        <button class="btn" onclick="submitReleve('{{ phase }}')">▸ Vérifier les preuves</button>
+        <div id="releve-feedback-{{ phase }}" style="min-height: 1.4rem; font-size: var(--fs-xs);"></div>
       </div>
       {% else %}
       <div style="display: flex; gap: 1ch; align-items: stretch;">
@@ -61,6 +96,15 @@
     gap: var(--space-6) var(--space-4); margin-top: var(--space-2);
   }
   @media (max-width: 640px) { .flags-grid { grid-template-columns: 1fr; } }
+  /* Réquisitions « relevé d'enquête » : champs en 2 colonnes */
+  .releve-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-5) var(--space-4);
+  }
+  @media (max-width: 640px) { .releve-grid { grid-template-columns: 1fr; } }
+  .releve-label {
+    display: flex; align-items: center; justify-content: space-between; gap: 1ch;
+  }
 </style>
 {% endblock %}
 
@@ -158,5 +202,109 @@ document.querySelectorAll('input[id^="input-"]').forEach(inp => {
     if (e.key === 'Enter') submitFlag(inp.id.replace('input-', ''));
   });
 });
+
+{% if releve_fields is defined %}
+// --- Réquisitions « relevé d'enquête » (plusieurs faits par étape) ---
+const RELEVE_KEYS = {
+{%- for phase, rfields in releve_fields.items() %}
+  '{{ phase }}': [{% for key, fname, fhint, fph in rfields %}'{{ key }}'{% if not loop.last %}, {% endif %}{% endfor %}]{% if not loop.last %},{% endif %}
+{%- endfor %}
+};
+
+function lockReleveField(key) {
+  const badge = document.getElementById('releve-badge-' + key);
+  if (badge) { badge.className = 'badge badge-success'; badge.textContent = 'OK'; }
+  const cell = document.getElementById('releve-cell-' + key);
+  if (cell) cell.innerHTML =
+    '<div class="text-bright" style="font-size: var(--fs-sm);">✓ versé au dossier</div>';
+}
+
+function flashReleveError(key) {
+  const cell = document.getElementById('releve-cell-' + key);
+  const well = cell ? cell.querySelector('.prompt-field') : null;
+  if (well) {
+    well.classList.add('error');
+    setTimeout(() => well.classList.remove('error'), 400);
+  }
+}
+
+function markReleveSolved(phase) {
+  const badge = document.getElementById('badge-' + phase);
+  const body  = document.getElementById('body-'  + phase);
+  if (badge) { badge.className = 'badge badge-success'; badge.textContent = 'OK'; }
+  const card = document.getElementById('card-' + phase);
+  if (card) card.style.gridColumn = '';
+  if (body) {
+    const note = body.querySelector('.text-faint');
+    body.innerHTML =
+      (note ? note.outerHTML : '') +
+      '<div class="text-bright" style="font-size: var(--fs-sm);">✓ Preuve versée au dossier.</div>';
+  }
+  renderBar(parseInt(document.getElementById('counter').textContent || '0') + 1);
+}
+
+async function submitReleve(phase) {
+  const keys = RELEVE_KEYS[phase] || [];
+  const fb = document.getElementById('releve-feedback-' + phase);
+  const fields = {};
+  keys.forEach(k => {
+    const inp = document.getElementById('releve-input-' + k);
+    if (inp && !inp.disabled) fields[k] = inp.value.trim();
+  });
+  if (Object.values(fields).every(v => !v)) {
+    fb.innerHTML = '<span class="text-faint">// saisissez au moins un élément</span>';
+    return;
+  }
+
+  fb.innerHTML = '<span class="text-faint">// vérification du scellé...</span>';
+  let res, data = {};
+  try {
+    res = await fetch('/api/releve', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ phase, fields }),
+    });
+    try { data = await res.json(); } catch (_) { data = {}; }
+  } catch (e) {
+    fb.innerHTML = '<span class="text-bright term-blink">// erreur réseau</span>';
+    return;
+  }
+
+  if (!res.ok) {
+    const msg = res.status === 401
+      ? '// SESSION EXPIRÉE — rechargez la page et reconnectez votre équipe'
+      : '// erreur (' + res.status + ') — ' + (data.error || 'réessayez');
+    fb.innerHTML = '<span class="text-bright term-blink">' + msg + '</span>';
+    return;
+  }
+
+  const results = data.results || {};
+  let nbBad = 0;
+  keys.forEach(k => {
+    if (results[k] === true)  { lockReleveField(k); }
+    else if (results[k] === false) { flashReleveError(k); nbBad++; }
+  });
+
+  if (data.all_correct) {
+    markReleveSolved(phase);
+    return;
+  }
+  if (nbBad > 0) {
+    fb.innerHTML = '<span class="text-bright term-blink">// ' + nbBad +
+      ' preuve(s) rejetée(s) — corrigez les champs en erreur</span>';
+  } else {
+    fb.innerHTML = '<span class="text-bright">// preuve(s) enregistrée(s) — il manque encore des éléments</span>';
+  }
+}
+
+document.querySelectorAll('input[id^="releve-input-"]').forEach(inp => {
+  inp.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const card = inp.closest('.ascii-frame');
+    const phase = card ? card.id.replace('card-', '') : null;
+    if (phase) submitReleve(phase);
+  });
+});
+{% endif %}
 </script>
 {% endblock %}
