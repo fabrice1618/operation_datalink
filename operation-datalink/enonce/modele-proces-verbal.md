@@ -28,15 +28,16 @@ Renseignez le tableau à partir des trames ARP, des requêtes DNS et des flux.
 Une fiche par preuve. Le jeton seul ne suffit pas : la **localisation** fait foi.
 
 ### Preuve P1 — Coordination du trafic *(scellé 01)*
-- Jeton `DATALINK{ }` :
+- Faits relevés (suspects, transporteur, date de chargement, n° de colis) :
 - Localisation (n° trame, protocole, IP src → dst, port, horodatage) :
 - Ce que la preuve démontre :
 - Infraction caractérisée :
 
 ### Preuve P2 — Exfiltration de la base clients *(scellé 02)*
-- Jeton `DATALINK{ }` :
-- Localisation :
-- Nom du fichier / nombre de victimes estimé :
+- Nombre de clients impactés :
+- Identifiant / mot de passe FTP :
+- IP du serveur → IP du poste :
+- Localisation (n° trame, protocole, port, horodatage) :
 - Infraction caractérisée :
 
 ### Preuve P3 — Menaces / chantage *(scellé 01)*

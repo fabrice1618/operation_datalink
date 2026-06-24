@@ -9,8 +9,8 @@ préférence avec **Wireshark** (filtres d'affichage, *Suivre le flux TCP/HTTP*,
 Chaque réquisition décrit la preuve à rapporter et fournit un **indice**
 (protocole, filtre, manœuvre) pour vous aider à la localiser. Le jeton seul ne
 suffit pas : sa **localisation** (trame, protocole, IP, port) fait toujours foi.
-La **réquisition 1** fait exception : elle ne livre pas de jeton mais un **relevé
-de faits** à saisir dans le formulaire d'enquête du portail.
+Les **réquisitions 1 et 2** font exception : elles ne livrent pas de jeton mais un
+**relevé de faits** à saisir dans le formulaire d'enquête du portail.
 
 > ⚠️ **Le réseau n'est pas « propre ».** Les captures contiennent du **trafic
 > parasite** légitime (résolutions DNS anodines, consultations, mail interne) :
@@ -19,10 +19,11 @@ de faits** à saisir dans le formulaire d'enquête du portail.
 > avec une infraction est recevable.
 >
 > ⚠️ **Aucun vrai jeton n'apparaît en clair.** Un simple « rechercher DATALINK »
-> ne suffit plus : pour les réquisitions 2 à 5, chaque preuve demande de
+> ne suffit plus : pour les réquisitions 3 à 5, chaque preuve demande de
 > **reconstituer le flux** du protocole *puis* de **décoder** — suivez l'indice
-> de chaque réquisition. La réquisition 1 ne cache pas de jeton : elle demande
-> de **relever des faits** dans la conversation.
+> de chaque réquisition. Les réquisitions 1 et 2 ne cachent pas de jeton : elles
+> demandent de **relever des faits** (la conversation HTTP pour R1, le transfert
+> FTP pour R2).
 
 ---
 
@@ -60,17 +61,29 @@ d'un trafic illicite) + leur localisation (trames, IP src/dst, port, horodatage)
 Un fichier a été transféré vers un serveur externe. Il contiendrait des
 **données personnelles de clients** (état civil, e-mail, IBAN…).
 
-- Identifiez le protocole de transfert, les identifiants utilisés et le nom
-  du fichier.
-- **Reconstituez le fichier** transféré et examinez son contenu.
+Cette réquisition ne cache **pas de jeton** : **reconstituez le transfert** puis
+**relevez les éléments techniques** qui le caractérisent. Vous les saisirez dans
+le **formulaire d'enquête** du portail (réquisition 2). L'étape n'est validée que
+lorsque les **cinq** éléments sont exacts ; seuls les éléments corrects sont
+verrouillés.
+
+Relevez et saisissez :
+
+1. le **nombre de clients impactés** (nombre d'enregistrements de la base) ;
+2. l'**identifiant** de connexion utilisé ;
+3. le **mot de passe** de connexion ;
+4. l'**adresse IP du serveur** qui reçoit le fichier ;
+5. l'**adresse IP du poste** qui l'envoie.
 
 > *Indice :* le protocole sépare le canal de **contrôle** du canal de
-> **données**. Dans Wireshark, *Fichier → Exporter des objets* ou le suivi du
-> flux de données permet de récupérer le fichier. Le jeton figure dans la 1re
-> ligne d'en-tête, mais **inscrit à l'envers** : relisez-le de droite à gauche.
+> **données**. Le canal de contrôle (FTP, port 21) laisse passer en clair les
+> commandes `USER` / `PASS` ainsi que les adresses des deux extrémités. Dans
+> Wireshark, *Fichier → Exporter des objets* ou le suivi du flux de **données**
+> permet de **reconstituer le fichier** : comptez-y les enregistrements de
+> clients.
 
-**À rapporter :** le jeton `DATALINK{...}` + l'estimation du nombre de victimes
-+ qualification (atteinte aux données personnelles / RGPD).
+**À rapporter au PV :** les cinq éléments + qualification (atteinte aux données
+personnelles / RGPD) + leur localisation (trames, IP src/dst, port, horodatage).
 
 ---
 
@@ -153,9 +166,11 @@ Pour les binômes en avance — à mentionner dans le PV, valorisés en badges :
 Dans votre procès-verbal :
 
 1. pour la **réquisition 1**, les **quatre faits** relevés (suspects,
-   transporteur, date de chargement, n° de colis) ; pour les **réquisitions 2
-   à 5**, le **jeton** `DATALINK{...}` — chacun avec sa localisation (trame,
-   protocole, IP src/dst, port, horodatage) ;
+   transporteur, date de chargement, n° de colis) ; pour la **réquisition 2**, les
+   **cinq éléments** du transfert (nombre de clients, identifiant, mot de passe,
+   IP serveur, IP poste) ; pour les **réquisitions 3 à 5**, le **jeton**
+   `DATALINK{...}` — chacun avec sa localisation (trame, protocole, IP src/dst,
+   port, horodatage) ;
 2. le **schéma des protagonistes** (qui est qui : IP, MAC, rôle) — utilisez les
    trames **ARP** et **DNS** pour relier adresses et identités ;
 3. une **chronologie** des faits (timeline) ;

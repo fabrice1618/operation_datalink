@@ -6,11 +6,13 @@ pour vérifier sans Wireshark). Commandes à lancer depuis `scelles/`.
 ## Vue d'ensemble rapide
 
 Depuis cette version, **aucun vrai jeton n'apparaît en clair** dans les scellés :
-les réquisitions 2 à 5 imposent de reconstituer le flux du protocole *puis* de
-décoder. La **réquisition 1** ne livre plus de jeton du tout : c'est un **relevé
-de faits** (suspects, transporteur, date, n° de colis) lus dans le chat HTTP,
-à saisir dans le formulaire d'enquête du portail. La recherche naïve ne renvoie
-donc **que le leurre** (cf. « Bruit de fond & leurre ») :
+les réquisitions 3 à 5 imposent de reconstituer le flux du protocole *puis* de
+décoder. Les **réquisitions 1 et 2** ne livrent plus de jeton du tout : ce sont des
+**relevés de faits** — R1 (suspects, transporteur, date, n° de colis) lus dans le
+chat HTTP ; R2 (nombre de clients, identifiant/mot de passe FTP, IP serveur et
+poste) lus dans le transfert FTP —, à saisir dans le formulaire d'enquête du
+portail. La recherche naïve ne renvoie donc **que le leurre** (cf. « Bruit de fond
+& leurre ») :
 
 ```bash
 strings scelle-01_serveur-interne.pcap scelle-02_passerelle.pcap \
@@ -24,7 +26,7 @@ révèle toutes) :
 | Preuve | Protocole | Camouflage | Décodage |
 |--------|-----------|------------|----------|
 | P1 | HTTP chat | relevé de faits (pas de jeton) | lire la conversation, écarter le leurre |
-| P2 | FTP       | jeton écrit à l'envers | lire à l'envers (`rev`) |
+| P2 | FTP       | relevé de faits (pas de jeton) | lire le canal de contrôle + reconstituer le fichier |
 | P3 | SMTP      | pièce jointe base64    | `base64 -d` |
 | P4 | Telnet    | jeton en hexadécimal   | `xxd -r -p` |
 | P5 | DNS TXT   | valeur en base64       | `base64 -d` |
@@ -62,25 +64,34 @@ restitué par Wireshark/`tcpdump`.
 
 ---
 
-## P2 — Exfiltration (FTP, scellé 02) → `DATALINK{4213_CLIENTS_RGPD_EXFILTRES}`
+## P2 — Exfiltration (FTP, scellé 02) → relevé d'enquête (5 faits)
 
-**Wireshark :** filtre `ftp` (canal de contrôle : `USER`, `PASS`, `STOR`).
-Puis `ftp-data`, ou *Fichier → Exporter des objets* / *Suivre le flux TCP* sur
-la connexion de données (ports 30000-30009) pour reconstituer le CSV.
+Plus de jeton : on **reconstitue le transfert FTP** de Marc (`10.13.37.10`) vers
+darkdrop (`10.13.37.200`) et on relève cinq éléments, à saisir dans le formulaire
+d'enquête du portail (l'étape n'est validée que si les 5 sont exacts) :
+
+| Champ | Valeur attendue |
+|-------|-----------------|
+| Clients impactés | **10** (enregistrements du CSV reconstitué) |
+| Identifiant FTP | **depot** |
+| Mot de passe FTP | **Pr1nt3mps2026!** |
+| IP du serveur | **10.13.37.200** (destination) |
+| IP de l'utilisateur | **10.13.37.10** (source) |
+
+**Wireshark :** filtre `ftp` (canal de contrôle : `USER`, `PASS`, `STOR` — révèle
+l'identifiant, le mot de passe et les deux IP). Puis `ftp-data`, ou *Fichier →
+Exporter des objets* / *Suivre le flux TCP* sur la connexion de données
+(ports 30000-30009) pour reconstituer le CSV : son en-tête donne le volume.
 
 **tcpdump :**
 ```bash
 tcpdump -A -r scelle-02_passerelle.pcap 'tcp port 21' | grep -E 'USER|PASS|STOR'
-tcpdump -A -r scelle-02_passerelle.pcap 'tcp portrange 30000-30010' | grep -A20 'EXPORT CONFIDENTIEL'
+tcpdump -nn -r scelle-02_passerelle.pcap 'tcp port 21' | head   # IP source / destination
+tcpdump -A -r scelle-02_passerelle.pcap 'tcp portrange 30000-30010' | grep -A2 'EXPORT CONFIDENTIEL'
 ```
-Identifiants : `depot` / `Pr1nt3mps2026!`. La 1re ligne du CSV porte le jeton
-**inscrit à l'envers** : `# ... ref(envers):}SERTLIFXE_DPGR_STNEILC_3124{KNILATAD`.
-Le relire à l'envers :
-```bash
-echo '}SERTLIFXE_DPGR_STNEILC_3124{KNILATAD' | rev
-# => DATALINK{4213_CLIENTS_RGPD_EXFILTRES}
-```
-(≈ 4213 clients, IBAN inclus — la 2ᵉ ligne d'en-tête confirme le volume.)
+Identifiants : `depot` / `Pr1nt3mps2026!`. Le fichier reconstitué compte
+**10 enregistrements** de clients (IBAN, e-mail, état civil inclus). Plus aucun
+jeton n'est inscrit dans le fichier.
 
 ---
 

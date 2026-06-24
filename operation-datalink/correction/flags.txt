@@ -10,7 +10,12 @@
 #   Date charg.  : 14/05/2026                  (alias : 14/5/2026, 14 mai 2026)
 #   N° de colis  : NX-4417                     (alias : nx4417)
 #   Leurre à écarter : "IT-Support" -> Transports Brel / 12/05 / colis RH-0090
-P2  Exfiltration base (FTP)    DATALINK{4213_CLIENTS_RGPD_EXFILTRES}  [écrit à l'envers]
+# P2 n'est plus un jeton : relevé d'enquête (5 faits du transfert FTP, scellé 02).
+#   Clients impactés    : 10               (enregistrements du CSV reconstitué)
+#   Identifiant FTP     : depot
+#   Mot de passe FTP    : Pr1nt3mps2026!
+#   IP du serveur       : 10.13.37.200     (darkdrop, destination)
+#   IP de l'utilisateur : 10.13.37.10      (poste de Marc, source)
 P3  Menaces (SMTP/base64)      DATALINK{RANCON_50000E_BTC}            [pièce jointe base64]
 P4  Intrusion (scan + telnet)  DATALINK{STAD_ROOT_NORDEXPORT}         [hexadécimal]
 P5  Canal caché (DNS TXT)      DATALINK{TUNNEL_DNS_C2_ACTIF}          [base64]

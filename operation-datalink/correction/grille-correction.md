@@ -1,7 +1,7 @@
 # Opération Datalink — grille de correction (CONFIDENTIEL enseignant)
 
 Barème indicatif sur **20 points** : 10 pts pour les preuves (2 pts/réquisition —
-R1 = relevé des 4 faits, R2 à R5 = jeton), 6 pts pour la qualité du PV
+R1 = relevé des 4 faits, R2 = relevé des 5 faits, R3 à R5 = jeton), 6 pts pour la qualité du PV
 (localisation, identification des protagonistes, timeline, qualification
 juridique), 4 pts pour la phase 2.
 
@@ -30,15 +30,20 @@ juridique), 4 pts pour la phase 2.
   élément d'association de malfaiteurs (art. 450-1 CP).
 
 ## Preuve P2 — Exfiltration de la base clients *(scellé 02)*
-- **Flag :** `DATALINK{4213_CLIENTS_RGPD_EXFILTRES}`
-- **Piège pédagogique :** le jeton est **inscrit à l'envers** dans la 1re ligne
-  du CSV reconstitué (`ref(envers):}SERTLIFXE_…{KNILATAD`) : à relire à l'envers
-  (`rev`). Reconstituer le fichier reste le geste central.
+- **Relevé d'enquête (5 faits, plus de jeton) :**
+  - **Clients impactés :** **10** (enregistrements du CSV reconstitué).
+  - **Identifiant FTP :** `depot`.
+  - **Mot de passe FTP :** `Pr1nt3mps2026!`.
+  - **IP du serveur :** `10.13.37.200` (darkdrop, destination du transfert).
+  - **IP de l'utilisateur :** `10.13.37.10` (poste de Marc, source).
+- **Saisie portail :** formulaire d'enquête de la réquisition 2. L'étape (P2)
+  n'est validée que si les **5 champs** sont exacts ; seuls les champs corrects
+  sont verrouillés (saisie insensible casse/accents).
 - **Localisation attendue :** FTP (port 21) de `10.13.37.10` (Marc) →
   `10.13.37.200` ; commandes `USER depot` / `PASS Pr1nt3mps2026!` /
   `STOR clients_nordexport.csv` ; fichier reconstitué via le **canal de données
-  passif** (ports 30000-30009) ou *Exporter des objets*. Jeton dans la 1re ligne.
-- **Attendu en plus :** ~**4213** victimes ; données = IBAN, e-mail, état civil.
+  passif** (ports 30000-30009) ou *Exporter des objets*. Le fichier reconstitué
+  compte **10 enregistrements** de clients ; données = IBAN, e-mail, état civil.
 - **Qualification :** collecte/transfert illicites de données personnelles
   (art. 226-18 / 226-22 CP), atteinte au RGPD ; recel.
 
@@ -114,6 +119,5 @@ Cf. `flags.txt` pour la correspondance. Le poste `10.13.37.40` (`pc-it`) est un
 - Confusion canal de contrôle / canal de données en FTP.
 - R1 : faits du **leurre IT-Support** (Transports Brel / 12/05 / RH-0090) rendus
   à la place de ceux des suspects.
-- Décodage incomplet : lecture à l'envers (P2), base64 (P3, P5),
-  hexadécimal (P4).
+- Décodage incomplet : base64 (P3, P5), hexadécimal (P4).
 - Confusion entre l'IP de l'intrus (.66) et celle du serveur (.50).

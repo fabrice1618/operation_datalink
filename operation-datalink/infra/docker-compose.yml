@@ -189,14 +189,18 @@ services:
       # Empreintes SHA-256 des flags — jamais le flag en clair (cf. evolution1.md, P1).
       # Régénérer après modification d'un flag : python3 infra/gen-flag-hashes.py
       FLAG_P0_SHA256: "2a5e4ee9e80c31f92a6c968f0ea08c1dc9c49967df8a3a3fb18e640188da997a"
-      # Réquisition 1 — relevé d'enquête : 4 champs au lieu d'un jeton. Chaque
-      # variable peut contenir plusieurs empreintes (variantes de saisie),
-      # séparées par des espaces. Régénérer : python3 infra/gen-r1-hashes.py
+      # Réquisitions 1 et 2 — relevé d'enquête : plusieurs champs au lieu d'un
+      # jeton. Chaque variable peut contenir plusieurs empreintes (variantes de
+      # saisie), séparées par des espaces. Régénérer : python3 infra/gen-releve-hashes.py
       FLAG_P1_SUSPECTS_SHA256: "dc8cc4b162358790cb0ad6af1be697bd6f3e154c0656b7179fc374311606dd49"
       FLAG_P1_TRANSPORTEUR_SHA256: "cdbba27050b540bb18d53da5e54be9b7e6d851a3b737baa12b960d48338c8143 a4b6174b77106a9403bc2754f9f388582ae57a219a61ac8514632e05de3984a0"
       FLAG_P1_DATE_SHA256: "62323a999532855a490ec48ecd3b7d9e311deba2e7f3413b6e01a280ae64e250 2dfdfffb542e494be666cc5df38c52436f1b94b439a6a36f50427baf15a848df 6ed8823aa95d0baa1d9f49db915b2b41ea52b0a6461cfd1ad755f0084d923d4e"
       FLAG_P1_COLIS_SHA256: "3d26eb2fdcc96eb2cc660beb8b0f070d4334329ce3a43cfd3356b14eb01a98a3 808e051ff71d06995d0702deae5eca2e4bb00ace89bbd92ed0e717d31ac68cf3"
-      FLAG_P2_SHA256: "f576c0b19877c9d5d647c3e24578f129754b945dbf3a27d5d070ade08e44f4ef"
+      FLAG_P2_CLIENTS_SHA256: "4a44dc15364204a80fe80e9039455cc1608281820fe2b24f1e5233ade6af1dd5"
+      FLAG_P2_FTP_USER_SHA256: "ba0465f49ae13d97b28eb70a177528f460656aced7699ff1db1fddfdba8eca1e"
+      FLAG_P2_FTP_PASS_SHA256: "9817268977bda5ce1c073810b333661154d027df017900e1579bf3bd2d519ff8"
+      FLAG_P2_IP_SERVEUR_SHA256: "3d4defa91bc895fb20dde99da311dd15e2e128311b932438bb9a477668334a66"
+      FLAG_P2_IP_USER_SHA256: "9367fb996c7a86f94bfef7a83b87178e9bbe835b4c95b10d09ce91a4aec2a8cb"
       FLAG_P3_SHA256: "aff92775ce70d141b8cc31717bd480bec549ec1a231cb651b79823a28126ca2d"
       FLAG_P4_SHA256: "e5823cd75a2f2618d8c5982b211b55c10a868a54cde5605d7449340e3944a2f5"
       FLAG_P5_SHA256: "d7e0b19e79f16d5ed3370014139b216603239f935c8b924fd69d6c6b1558b8df"
