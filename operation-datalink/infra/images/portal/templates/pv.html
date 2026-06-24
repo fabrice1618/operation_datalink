@@ -2,66 +2,190 @@
 {% block title %}Procès-verbal — Opération Datalink{% endblock %}
 {% block content %}
 
-<div class="page-heading">Dépôt du procès-verbal</div>
+<div class="page-heading">Procès-verbal d'enquête</div>
 <div class="page-subhead">équipe : {{ group }}</div>
 
-<div class="pv-grid">
+<p class="text-dim" style="font-size: var(--fs-sm); margin-bottom: var(--space-6); max-width: 80ch;">
+  // Renseignez les éléments de synthèse ci-dessous. Les <span class="text-bright">faits</span>
+  de chaque réquisition et leur <span class="text-bright">localisation</span> sont saisis sur
+  l'écran <a href="{{ url_for('preuves') }}" class="text-bright" style="text-decoration:none; border-bottom:1px dotted var(--p-faint);">Preuves</a>.
+  Tout est enregistré automatiquement. Vérifiez le rendu avec « Aperçu du PV », puis transmettez-le au juge.
+  Plan détaillé : <a href="{{ url_for('aide_modele_pv') }}" class="text-bright" style="text-decoration:none; border-bottom:1px dotted var(--p-faint);">voir le modèle de PV</a>.
+</p>
 
-  <div class="ascii-frame">
-    <div class="frame-title">Déposer un fichier</div>
-    <div class="frame-body">
-      <form method="post" action="{{ url_for('api_pv') }}" enctype="multipart/form-data">
-        <div style="margin-bottom: var(--space-5);">
-          <label class="form-label">Fichier</label>
-          <div class="prompt-field">
-            <span class="prompt">A:\&gt;</span>
-            <input type="file" name="file"
-                   accept=".pdf,.txt,.md,.odt,.docx" required
-                   style="cursor: pointer;">
-          </div>
-          <div class="form-hint">// formats acceptés : PDF, TXT, MD, ODT, DOCX</div>
-        </div>
-        <button type="submit" class="btn btn-block">▸ Déposer</button>
-      </form>
+<!-- En-tête -->
+<div class="ascii-frame pv-block">
+  <div class="frame-title">En-tête</div>
+  <div class="frame-body">
+    {% for ekey, elabel, eph in entete %}
+    <div style="margin-bottom: var(--space-5);">
+      <div class="pv-label-row">
+        <label class="form-label">{{ elabel }}</label>
+        <span class="pv-saved" data-saved-for="entete_{{ ekey }}"></span>
+      </div>
+      <div class="prompt-field">
+        <span class="prompt">›</span>
+        <input type="text" class="pv-autosave" data-field="entete_{{ ekey }}"
+               value="{{ fields.get('entete_' ~ ekey, '') }}" placeholder="{{ eph }}"
+               autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- §1 — Protagonistes -->
+<div class="ascii-frame pv-block">
+  <div class="frame-title">1 · Protagonistes</div>
+  <div class="frame-right"><span class="pv-saved" data-saved-for="protagonistes_json"></span></div>
+  <div class="frame-body">
+    <div class="text-faint" style="font-size: var(--fs-xs); margin-bottom: var(--space-4);">
+      // qui est qui — reliez IP, MAC et identités via les trames ARP et DNS
+    </div>
+    <div style="overflow-x: auto;">
+      <table class="data-table pv-grid">
+        <thead>
+          <tr>{% for ckey, clabel in protag_cols %}<th>{{ clabel }}</th>{% endfor %}</tr>
+        </thead>
+        <tbody>
+          {% for row in protag_rows %}
+          {% set ri = loop.index0 %}
+          <tr>
+            {% for ckey, clabel in protag_cols %}
+            <td><input type="text" class="pv-grid-input" data-grid="protagonistes"
+                       data-col="{{ ckey }}" data-row="{{ ri }}"
+                       value="{{ row[ckey] }}" autocomplete="off" spellcheck="false"></td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
+</div>
 
-  <div class="ascii-frame">
-    <div class="frame-title">Fichiers déposés</div>
-    {% if uploads %}
-    <div class="frame-right">{{ uploads | length }} FICHIER(S)</div>
-    {% endif %}
-    <div class="frame-body">
-      {% if uploads %}
-      <div>
-        {% for u in uploads %}
-        <div class="file-item">
-          <span class="file-icon">▣</span>
-          <div style="flex: 1; min-width: 0;">
-            <div style="font-size: var(--fs-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-              {{ u.filename }}
-            </div>
-            <div class="text-faint" style="font-size: var(--fs-2xs);">// {{ u.submitted_at }}</div>
-          </div>
-          <span class="badge badge-success">OK</span>
-        </div>
-        {% endfor %}
-      </div>
-      {% else %}
-      <div class="text-faint" style="font-size: var(--fs-sm); text-align: center; padding: 1.5rem 0;">
-        // aucun PV déposé
-      </div>
-      {% endif %}
+<!-- §3 — Chronologie -->
+<div class="ascii-frame pv-block">
+  <div class="frame-title">3 · Chronologie des faits</div>
+  <div class="frame-right"><span class="pv-saved" data-saved-for="timeline_json"></span></div>
+  <div class="frame-body">
+    <div class="text-faint" style="font-size: var(--fs-xs); margin-bottom: var(--space-4);">
+      // timeline — un événement par ligne, dans l'ordre chronologique
+    </div>
+    <div style="overflow-x: auto;">
+      <table class="data-table pv-grid">
+        <thead>
+          <tr>{% for ckey, clabel in timeline_cols %}<th>{{ clabel }}</th>{% endfor %}</tr>
+        </thead>
+        <tbody>
+          {% for row in timeline_rows %}
+          {% set ri = loop.index0 %}
+          <tr>
+            {% for ckey, clabel in timeline_cols %}
+            <td><input type="text" class="pv-grid-input" data-grid="timeline"
+                       data-col="{{ ckey }}" data-row="{{ ri }}"
+                       value="{{ row[ckey] }}" autocomplete="off" spellcheck="false"></td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
+</div>
 
+<!-- §4 — Synthèse -->
+<div class="ascii-frame pv-block">
+  <div class="frame-title">4 · Synthèse à l'attention du juge</div>
+  <div class="frame-right"><span class="pv-saved" data-saved-for="synthese"></span></div>
+  <div class="frame-body">
+    <div class="text-faint" style="font-size: var(--fs-xs); margin-bottom: var(--space-3);">
+      // qualification d'ensemble, liens entre protagonistes, supplément d'information éventuel
+    </div>
+    <textarea class="prompt-area pv-autosave" data-field="synthese" rows="6"
+              autocomplete="off" spellcheck="false"
+              placeholder="Synthèse…">{{ fields.get('synthese', '') }}</textarea>
+  </div>
+</div>
+
+<!-- Actions -->
+<div class="pv-actions">
+  <a class="btn" href="{{ url_for('pv_apercu') }}" target="_blank" rel="noopener">▸ Aperçu du PV</a>
+  <button type="button" class="btn" id="pv-submit">▸ Transmettre au juge</button>
+  <span id="pv-submit-status" class="text-bright" style="font-size: var(--fs-sm);">
+    {% if submitted_at %}✓ PV transmis au juge — {{ submitted_at }}{% endif %}
+  </span>
 </div>
 
 <style>
-  .pv-grid {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: var(--space-6); align-items: start; margin-top: var(--space-2);
+  .pv-block { margin-bottom: var(--space-8); }
+  .pv-label-row { display: flex; align-items: center; justify-content: space-between; gap: 1ch; }
+  .pv-saved { font-size: var(--fs-2xs); letter-spacing: .04em; }
+  /* Cellules de grille : input plein cadre, habillage terminal */
+  .pv-grid td { padding: .15rem .4rem; }
+  .pv-grid-input {
+    width: 100%; min-width: 8ch;
+    background: transparent; border: none; outline: none;
+    color: var(--p-bright); font-family: var(--font-term);
+    font-size: var(--fs-sm); text-shadow: var(--text-glow);
+    padding: .3rem .2rem;
   }
-  @media (max-width: 640px) { .pv-grid { grid-template-columns: 1fr; } }
+  .pv-grid-input:focus { background: var(--bg-inset); }
+  .pv-actions {
+    display: flex; gap: 1ch; flex-wrap: wrap; align-items: center;
+    margin-top: var(--space-6);
+  }
 </style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Sérialise une grille (protagonistes/timeline) en tableau JSON ordonné par ligne.
+  function serializeGrid(grid) {
+    const rows = {};
+    document.querySelectorAll('.pv-grid-input[data-grid="' + grid + '"]').forEach(function (c) {
+      (rows[c.dataset.row] = rows[c.dataset.row] || {})[c.dataset.col] = c.value.trim();
+    });
+    return Object.keys(rows)
+      .sort(function (a, b) { return a - b; })
+      .map(function (k) { return rows[k]; });
+  }
+
+  document.querySelectorAll('.pv-grid-input').forEach(function (inp) {
+    var last = inp.value;
+    inp.addEventListener('blur', function () {
+      if (inp.value === last) return;
+      last = inp.value;
+      var field = inp.dataset.grid + '_json';
+      savePvField(field, JSON.stringify(serializeGrid(inp.dataset.grid)))
+        .then(function (r) { flashSaved(field, r.ok); })
+        .catch(function () { flashSaved(field, false); });
+    });
+  });
+
+  // Transmission du PV au juge.
+  document.getElementById('pv-submit').addEventListener('click', function () {
+    const btn = this;
+    const status = document.getElementById('pv-submit-status');
+    btn.disabled = true;
+    status.textContent = '// transmission…';
+    fetch('/api/pv-submit', { method: 'POST' })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (res.ok && res.d.ok) {
+          status.textContent = '✓ PV transmis au juge — ' + (res.d.submitted_at || '');
+          status.className = 'text-bright';
+        } else {
+          btn.disabled = false;
+          status.textContent = '✗ échec — réessayez';
+          status.className = 'text-bright term-blink';
+        }
+      })
+      .catch(function () {
+        btn.disabled = false;
+        status.textContent = '✗ erreur réseau';
+        status.className = 'text-bright term-blink';
+      });
+  });
+</script>
 {% endblock %}

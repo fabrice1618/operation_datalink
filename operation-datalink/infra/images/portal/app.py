@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import hashlib
 import sqlite3
 import pathlib
@@ -11,7 +12,6 @@ from flask import (
     Flask, render_template, request, redirect, url_for,
     session, jsonify, abort, flash, send_from_directory
 )
-from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "datalink-portal-secret-2024")
@@ -45,8 +45,6 @@ CAPTURE_DIR = pathlib.Path(os.environ.get("CAPTURE_DIR", "/data/captures"))
 DATA_DIR = pathlib.Path("/data")
 PV_DIR = DATA_DIR / "pvs"
 DB_PATH = DATA_DIR / "submissions.db"
-
-ALLOWED_EXTENSIONS = {"pdf", "txt", "md", "odt", "docx"}
 
 DASHBOARD_TOKEN = os.environ.get("DASHBOARD_TOKEN", "prof2024")
 ACCESS_CODE = os.environ.get("ACCESS_CODE", "DATALINK-2026")
@@ -206,6 +204,44 @@ PHASE_GROUPS = {
     2: ["P6"],
 }
 
+# ── Procès-verbal saisi dans la plateforme ──────────────────────────────────
+# Le PV n'est plus un fichier déposé : il est saisi en ligne (faits déjà validés
+# + raisonnement libre) puis regénéré pour le juge. Tout le raisonnement est lu
+# par l'enseignant (jamais auto-noté), stocké en clair dans la table pv_fields.
+#
+# Narratif rattaché à chaque preuve P1–P5 (saisi sur l'écran « Preuves »).
+PV_NARRATIVE = [
+    ("localisation", "Localisation",
+     "N° de trame, protocole, IP src→dst, port, horodatage."),
+    ("infraction", "Infraction caractérisée",
+     "Quelle infraction cette preuve établit-elle ?"),
+]
+# En-tête du PV (saisi sur l'écran « Procès-verbal »).
+PV_ENTETE = [
+    ("enqueteurs", "Enquêteurs (binôme)", "Prénom Nom, Prénom Nom"),
+    ("outils", "Outils utilisés", "Wireshark, tcpdump, nmap…"),
+]
+# Grilles tabulaires : lignes fixes côté formulaire, sérialisées en JSON en base.
+PV_PROTAGONISTES_COLS = [
+    ("ip", "Adresse IP"), ("mac", "Adresse MAC"),
+    ("hote", "Nom / hôte"), ("role", "Rôle présumé"),
+]
+PV_TIMELINE_COLS = [
+    ("ts", "Horodatage"), ("acteur", "Acteur (IP)"),
+    ("action", "Action observée"), ("scelle", "Scellé"),
+]
+PV_PROTAGONISTES_ROWS = 6
+PV_TIMELINE_ROWS = 8
+
+# Clés de pv_fields que l'étudiant peut écrire via /api/pv-field (autosave). Les
+# faits reproduits (fact_*) sont écrits côté serveur par api_releve, hors de cette
+# liste blanche.
+PV_WRITABLE_FIELDS = (
+    {f"entete_{k}" for k, *_ in PV_ENTETE}
+    | {f"{p}_{k}" for p in PHASE_GROUPS[1] for k, *_ in PV_NARRATIVE}
+    | {"protagonistes_json", "timeline_json", "synthese"}
+)
+
 # Noms d'équipe imposés — lettres grecques.
 GREEK_TEAMS = [
     ("ALPHA", "Α"), ("BÊTA", "Β"), ("GAMMA", "Γ"), ("DELTA", "Δ"),
@@ -287,6 +323,24 @@ def init_db():
                 UNIQUE(group_id, field),
                 FOREIGN KEY (group_id) REFERENCES groups(id)
             );
+            -- Champs libres du procès-verbal saisi en ligne (un par clé). Texte
+            -- lu par le juge ; UPSERT à chaque autosave. Contient aussi les faits
+            -- validés reproduits (clés fact_*), écrits par api_releve.
+            CREATE TABLE IF NOT EXISTS pv_fields (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                group_id INTEGER NOT NULL,
+                field TEXT NOT NULL,
+                value TEXT NOT NULL,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(group_id, field),
+                FOREIGN KEY (group_id) REFERENCES groups(id)
+            );
+            -- Marque le PV comme transmis au juge (remplace le décompte d'uploads).
+            CREATE TABLE IF NOT EXISTS pv_submitted (
+                group_id INTEGER PRIMARY KEY,
+                submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (group_id) REFERENCES groups(id)
+            );
         """)
 
 
@@ -348,10 +402,6 @@ def validate_releve_field(phase: str, field: str, value: str) -> bool:
     return bool(canon) and sha256_hex(canon) in expected
 
 
-def allowed_file(filename: str) -> bool:
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
 def render_md(slug: str) -> str:
     """Rend un fichier d'énoncé en HTML."""
     path = ENONCE_DIR / slug
@@ -374,13 +424,102 @@ def releve_solved_fields(group_id: int) -> set:
 
 def found_phases(group_name: str) -> set:
     """Ensemble des phases déjà validées par l'équipe."""
-    group_id = get_or_create_group(group_name)
+    return found_phases_by_id(get_or_create_group(group_name))
+
+
+def found_phases_by_id(group_id: int) -> set:
+    """Ensemble des phases validées par l'équipe (par identifiant)."""
     with get_db() as conn:
         rows = conn.execute(
-            "SELECT phase, correct FROM flag_submissions WHERE group_id = ?",
+            "SELECT phase FROM flag_submissions WHERE group_id = ? AND correct = 1",
             (group_id,),
         ).fetchall()
-    return {r["phase"] for r in rows if r["correct"]}
+    return {r["phase"] for r in rows}
+
+
+# ── Procès-verbal : lecture / écriture des champs saisis ────────────────────
+def pv_get_fields(group_id: int) -> dict:
+    """Tous les champs de PV de l'équipe, en {field: value}."""
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT field, value FROM pv_fields WHERE group_id = ?", (group_id,)
+        ).fetchall()
+    return {r["field"]: r["value"] for r in rows}
+
+
+def pv_save_field(group_id: int, field: str, value: str) -> None:
+    """UPSERT d'un champ de PV (texte libre)."""
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO pv_fields (group_id, field, value) VALUES (?,?,?) "
+            "ON CONFLICT(group_id, field) DO UPDATE SET "
+            "value = excluded.value, updated_at = CURRENT_TIMESTAMP",
+            (group_id, field, value),
+        )
+
+
+def pv_submitted_at(group_id: int):
+    """Horodatage SQLite (UTC) de transmission du PV, ou None."""
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT submitted_at FROM pv_submitted WHERE group_id = ?", (group_id,)
+        ).fetchone()
+    return row["submitted_at"] if row else None
+
+
+def _pv_grid_rows(raw, cols, pad_to: int = 0):
+    """Décode une grille JSON en lignes normalisées (une ligne = dict de colonnes).
+
+    Tolère un JSON absent/invalide. Avec pad_to > 0, complète jusqu'à N lignes
+    (pour préremplir un formulaire) ; sinon ne garde que les lignes non vides
+    (pour l'affichage du PV).
+    """
+    keys = [k for k, _ in cols]
+    try:
+        rows = json.loads(raw or "[]")
+    except (ValueError, TypeError):
+        rows = []
+    norm = []
+    for r in rows:
+        cells = {k: ((r.get(k) if isinstance(r, dict) else "") or "").strip() for k in keys}
+        if pad_to or any(cells.values()):
+            norm.append(cells)
+    while len(norm) < pad_to:
+        norm.append({k: "" for k in keys})
+    return norm
+
+
+def build_pv_context(group_id: int) -> dict:
+    """Assemble le PV complet d'une équipe pour l'affichage (étudiant + juge)."""
+    fields = pv_get_fields(group_id)
+    solved = found_phases_by_id(group_id)
+    preuves = []
+    for phase in PHASE_GROUPS[1]:
+        faits = [
+            {"label": fname, "value": fields.get(f"fact_{phase}_{key}", "")}
+            for key, fname, *_ in RELEVE_FIELDS.get(phase, [])
+        ]
+        preuves.append({
+            "phase": phase,
+            "label": PHASE_LABELS[phase],
+            "faits": faits,
+            "localisation": fields.get(f"{phase}_localisation", ""),
+            "infraction": fields.get(f"{phase}_infraction", ""),
+            "solved": phase in solved,
+        })
+    sub = pv_submitted_at(group_id)
+    return {
+        "entete": {k: fields.get(f"entete_{k}", "") for k, *_ in PV_ENTETE},
+        "entete_def": PV_ENTETE,
+        "protagonistes": _pv_grid_rows(fields.get("protagonistes_json"), PV_PROTAGONISTES_COLS),
+        "protag_cols": PV_PROTAGONISTES_COLS,
+        "preuves": preuves,
+        "timeline": _pv_grid_rows(fields.get("timeline_json"), PV_TIMELINE_COLS),
+        "timeline_cols": PV_TIMELINE_COLS,
+        "synthese": fields.get("synthese", ""),
+        "submitted_at": to_local(sub) if sub else None,
+        "generated_at": datetime.now(LOCAL_TZ).strftime("%Y-%m-%d %H:%M:%S"),
+    }
 
 
 # Preuves comptabilisées au classement (l'entraînement P0 reste hors-concours ;
@@ -580,6 +719,20 @@ def aide_tcpdump():
     )
 
 
+@app.route("/aide/modele-pv")
+def aide_modele_pv():
+    redir = require_group()
+    if redir:
+        return redir
+    return render_template(
+        "guide.html",
+        group=session["group_name"],
+        title="Modèle de procès-verbal",
+        subhead="aide-mémoire — à préparer avant la saisie",
+        content=render_md("modele-proces-verbal.md"),
+    )
+
+
 @app.route("/requisitions")
 def requisitions():
     redir = require_group()
@@ -606,6 +759,7 @@ def preuves():
         title="Saisie des preuves — Phase 1",
         phases=phases, found=found, group=group, phase_num=1, cells=24,
         releve_fields=RELEVE_FIELDS, releve_done=releve_solved_fields(group_id),
+        pv_narrative=PV_NARRATIVE, pv_fields=pv_get_fields(group_id),
     )
 
 
@@ -679,6 +833,13 @@ def api_releve():
                 conn.execute(
                     "INSERT OR IGNORE INTO r1_fields (group_id, field) VALUES (?,?)",
                     (group_id, key),
+                )
+                # Reproduit le fait trouvé (en clair) pour le procès-verbal généré.
+                conn.execute(
+                    "INSERT INTO pv_fields (group_id, field, value) VALUES (?,?,?) "
+                    "ON CONFLICT(group_id, field) DO UPDATE SET "
+                    "value = excluded.value, updated_at = CURRENT_TIMESTAMP",
+                    (group_id, f"fact_{phase}_{key}", value),
                 )
                 solved.add(key)
 
@@ -800,49 +961,69 @@ def pv():
         return redir
     group = session["group_name"]
     group_id = get_or_create_group(group)
-    with get_db() as conn:
-        uploads = conn.execute(
-            "SELECT filename, submitted_at FROM pv_uploads WHERE group_id = ? ORDER BY submitted_at DESC",
-            (group_id,),
-        ).fetchall()
-    uploads = [
-        {"filename": u["filename"], "submitted_at": to_local(u["submitted_at"])}
-        for u in uploads
-    ]
-    return render_template("pv.html", group=group, uploads=uploads)
+    fields = pv_get_fields(group_id)
+    sub = pv_submitted_at(group_id)
+    return render_template(
+        "pv.html",
+        group=group,
+        fields=fields,
+        entete=PV_ENTETE,
+        protag_cols=PV_PROTAGONISTES_COLS,
+        protag_rows=_pv_grid_rows(fields.get("protagonistes_json"), PV_PROTAGONISTES_COLS, PV_PROTAGONISTES_ROWS),
+        timeline_cols=PV_TIMELINE_COLS,
+        timeline_rows=_pv_grid_rows(fields.get("timeline_json"), PV_TIMELINE_COLS, PV_TIMELINE_ROWS),
+        submitted_at=to_local(sub) if sub else None,
+    )
 
 
-@app.route("/api/pv", methods=["POST"])
-def api_pv():
+@app.route("/api/pv-field", methods=["POST"])
+def api_pv_field():
+    """Autosave d'un champ de PV (texte libre ou grille JSON)."""
     if not session.get("group_name"):
         return jsonify({"error": "Groupe non défini"}), 401
-    if "file" not in request.files:
-        flash("Aucun fichier sélectionné.", "danger")
-        return redirect(url_for("pv"))
-    f = request.files["file"]
-    if not f.filename:
-        flash("Aucun fichier sélectionné.", "danger")
-        return redirect(url_for("pv"))
-    if not allowed_file(f.filename):
-        flash(f"Format non autorisé. Formats acceptés : {', '.join(ALLOWED_EXTENSIONS)}", "danger")
-        return redirect(url_for("pv"))
+    data = request.get_json(force=True, silent=True) or {}
+    field = (data.get("field") or "").strip()
+    value = data.get("value")
+    if field not in PV_WRITABLE_FIELDS or not isinstance(value, str):
+        return jsonify({"error": "Champ invalide"}), 400
+    group_id = get_or_create_group(session["group_name"])
+    pv_save_field(group_id, field, value.strip())
+    return jsonify({"ok": True, "field": field})
 
-    group_name = session["group_name"]
-    group_id = get_or_create_group(group_name)
-    safe_group = secure_filename(group_name)
-    group_dir = PV_DIR / safe_group
-    group_dir.mkdir(parents=True, exist_ok=True)
-    filename = secure_filename(f.filename)
-    filepath = group_dir / filename
-    f.save(filepath)
 
+@app.route("/api/pv-submit", methods=["POST"])
+def api_pv_submit():
+    """Marque le PV de l'équipe comme transmis au juge (idempotent)."""
+    if not session.get("group_name"):
+        return jsonify({"error": "Groupe non défini"}), 401
+    group_id = get_or_create_group(session["group_name"])
     with get_db() as conn:
         conn.execute(
-            "INSERT INTO pv_uploads (group_id, filename, filepath) VALUES (?,?,?)",
-            (group_id, filename, str(filepath)),
+            "INSERT OR IGNORE INTO pv_submitted (group_id) VALUES (?)", (group_id,)
         )
-    flash(f"Procès-verbal « {filename} » déposé avec succès.", "success")
-    return redirect(url_for("pv"))
+    sub = pv_submitted_at(group_id)
+    return jsonify({"ok": True, "submitted_at": to_local(sub) if sub else None})
+
+
+@app.route("/pv/apercu")
+def pv_apercu():
+    redir = require_group()
+    if redir:
+        return redir
+    group = session["group_name"]
+    group_id = get_or_create_group(group)
+    return render_template("pv_apercu.html", group=group, pv=build_pv_context(group_id))
+
+
+@app.route("/dashboard/pv/<int:group_id>")
+def dashboard_pv(group_id):
+    if request.args.get("token", "") != DASHBOARD_TOKEN:
+        abort(403)
+    with get_db() as conn:
+        row = conn.execute("SELECT name FROM groups WHERE id = ?", (group_id,)).fetchone()
+    if not row:
+        abort(404)
+    return render_template("pv_apercu.html", group=row["name"], pv=build_pv_context(group_id))
 
 
 @app.route("/fin")
@@ -853,10 +1034,7 @@ def fin():
     group = session["group_name"]
     group_id = get_or_create_group(group)
     found = found_phases(group)
-    with get_db() as conn:
-        pv_count = conn.execute(
-            "SELECT COUNT(*) AS n FROM pv_uploads WHERE group_id = ?", (group_id,)
-        ).fetchone()["n"]
+    pv_done = pv_submitted_at(group_id) is not None
     p1_found = found & set(PHASE_GROUPS[1])
     p2_found = found & set(PHASE_GROUPS[2])
     # En mode une phase, la phase 2 / P6 disparaît du récapitulatif des scellés.
@@ -872,7 +1050,7 @@ def fin():
         found=found,
         p1_count=len(p1_found), p1_total=len(PHASE_GROUPS[1]),
         p2_count=len(p2_found), p2_total=len(PHASE_GROUPS[2]),
-        pv_count=pv_count,
+        pv_done=pv_done,
         phase2_enabled=PHASE2_ENABLED,
     )
 
@@ -891,19 +1069,12 @@ def dashboard():
         abort(403)
     with get_db() as conn:
         groups = conn.execute("SELECT id, name, created_at FROM groups ORDER BY created_at").fetchall()
-        pvs = conn.execute(
-            "SELECT group_id, filename, submitted_at FROM pv_uploads ORDER BY submitted_at"
-        ).fetchall()
+        subs = conn.execute("SELECT group_id, submitted_at FROM pv_submitted").fetchall()
 
     solves, first_blood = gather_solves()
     board = ranked_scoreboard(groups, solves)
 
-    pvs_by_group = {}
-    for p in pvs:
-        pvs_by_group.setdefault(p["group_id"], []).append({
-            "filename": p["filename"],
-            "submitted_at": to_local(p["submitted_at"]),
-        })
+    pv_submitted = {s["group_id"]: to_local(s["submitted_at"]) for s in subs}
 
     return render_template(
         "dashboard.html",
@@ -912,7 +1083,7 @@ def dashboard():
         phases={p: PHASE_LABELS[p] for p in SCORED_PHASES},
         solves=solves,
         first_blood=first_blood,
-        pvs_by_group=pvs_by_group,
+        pv_submitted=pv_submitted,
         token=token,
     )
 

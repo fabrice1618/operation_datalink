@@ -2,6 +2,11 @@
 
 **Information judiciaire n° 2026/DATALINK**
 
+> **Aide de préparation.** Le procès-verbal se **remplit et se transmet
+> directement dans le portail** (écrans « Preuves » puis « Procès-verbal »). Ce
+> modèle n'est plus à rendre : il reste utile pour **préparer vos relevés** avant
+> la saisie, car il liste dans l'ordre tout ce que le portail vous demandera.
+
 | | |
 |---|---|
 | Enquêteurs (noms / binôme) | |

@@ -27,7 +27,11 @@ m'en rapporter les preuves matérielles.** Chaque preuve devra être :
 1. **localisée** précisément dans la capture (n° de trame, protocole, IP source
    et destination, port, horodatage) ;
 2. **expliquée** (que démontre-t-elle ? quelle infraction caractérise-t-elle ?) ;
-3. **consignée** dans le procès-verbal type fourni (`modele-proces-verbal.md`).
+3. **consignée** dans le procès-verbal du portail : la localisation et
+   l'infraction de chaque preuve se saisissent sous la réquisition (écran
+   « Preuves »), l'en-tête, les protagonistes, la chronologie et la synthèse sur
+   l'écran « Procès-verbal », que vous transmettez ensuite d'un clic. Le
+   `modele-proces-verbal.md` n'est plus qu'une **aide pour préparer vos relevés**.
 
 Chaque réquisition est un **relevé d'enquête** : il ne s'agit pas de chasser un
 jeton mais de **reconstituer le flux** du protocole, parfois d'en **décoder** le

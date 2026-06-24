@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}PV {{ group }} — Opération Datalink{% endblock %}
+
+{% block head %}
+<style>
+  /* Document PV : champs de texte libre préservant les retours à la ligne */
+  .pv-doc-block { margin-bottom: var(--space-6); }
+  .pv-doc-field { margin-top: var(--space-4); }
+  .pv-doc-label {
+    font-size: var(--fs-xs); letter-spacing: .12em; text-transform: uppercase;
+    color: var(--p-dim); margin-bottom: .25rem;
+  }
+  .pv-doc-text { white-space: pre-wrap; color: var(--p-text); }
+  .pv-meta td { color: var(--p-text); }
+  .pv-meta td:first-child { color: var(--p-dim); width: 28%; }
+
+  /* Impression / export PDF : noir sur blanc, sans habillage CRT ni navigation */
+  @media print {
+    body.datalink::before, body.datalink::after { display: none !important; }
+    .site-header, .site-footer, .step-footer, .no-print { display: none !important; }
+    body.datalink {
+      background: #fff !important; color: #111 !important; text-shadow: none !important;
+    }
+    .main-content { padding: 0 !important; max-width: none !important; }
+    .ascii-frame { border-color: #999 !important; background: #fff !important; }
+    .frame-title, .frame-right, .page-heading, .page-subhead,
+    .text-bright, .text-dim, .text-faint, .badge {
+      color: #111 !important; text-shadow: none !important;
+    }
+    .data-table th, .data-table td { border-color: #bbb !important; color: #111 !important; }
+    .badge-success { background: #ddd !important; color: #111 !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-heading">Procès-verbal d'enquête numérique</div>
+<div class="page-subhead">
+  équipe : {{ group }}
+  {% if pv.submitted_at %} · transmis le {{ pv.submitted_at }}{% else %} · brouillon{% endif %}
+</div>
+
+<div style="margin-bottom: var(--space-6);">
+  <button type="button" class="btn no-print" onclick="window.print()">▸ Imprimer / PDF</button>
+</div>
+
+<!-- En-tête -->
+<div class="ascii-frame pv-doc-block">
+  <div class="frame-title">Information judiciaire n° 2026/DATALINK</div>
+  <div class="frame-body">
+    <table class="data-table pv-meta">
+      <tbody>
+        <tr><td>Équipe</td><td>{{ group }}</td></tr>
+        {% for ekey, elabel, eph in pv.entete_def %}
+        <tr><td>{{ elabel }}</td><td>{{ pv.entete[ekey] or '—' }}</td></tr>
+        {% endfor %}
+        <tr><td>Scellés analysés</td><td>scelle-01_serveur-interne.pcap ; scelle-02_passerelle.pcap</td></tr>
+        <tr><td>Édité le</td><td>{{ pv.generated_at }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- §1 Protagonistes -->
+<div class="ascii-frame pv-doc-block">
+  <div class="frame-title">1 · Identification des protagonistes</div>
+  <div class="frame-body">
+    {% if pv.protagonistes %}
+    <table class="data-table">
+      <thead><tr>{% for ckey, clabel in pv.protag_cols %}<th>{{ clabel }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {% for row in pv.protagonistes %}
+        <tr>{% for ckey, clabel in pv.protag_cols %}<td>{{ row[ckey] or '—' }}</td>{% endfor %}</tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-faint" style="font-size: var(--fs-sm);">// non renseigné</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- §2 Preuves -->
+<div class="page-subhead" style="margin-top: var(--space-8);">2 · Preuves collectées</div>
+{% for p in pv.preuves %}
+<div class="ascii-frame pv-doc-block">
+  <div class="frame-title">{{ p.label }}</div>
+  <div class="frame-right">
+    {% if p.solved %}<span class="badge badge-success">VERSÉE</span>
+    {% else %}<span class="badge badge-pending">EN ATTENTE</span>{% endif %}
+  </div>
+  <div class="frame-body">
+    <table class="data-table">
+      <tbody>
+        {% for f in p.faits %}
+        <tr><td style="width: 34%; color: var(--p-dim);">{{ f.label }}</td><td>{{ f.value or '—' }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="pv-doc-field">
+      <div class="pv-doc-label">Localisation</div>
+      <div class="pv-doc-text">{{ p.localisation or '—' }}</div>
+    </div>
+    <div class="pv-doc-field">
+      <div class="pv-doc-label">Infraction caractérisée</div>
+      <div class="pv-doc-text">{{ p.infraction or '—' }}</div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- §3 Chronologie -->
+<div class="ascii-frame pv-doc-block">
+  <div class="frame-title">3 · Chronologie des faits</div>
+  <div class="frame-body">
+    {% if pv.timeline %}
+    <table class="data-table">
+      <thead><tr>{% for ckey, clabel in pv.timeline_cols %}<th>{{ clabel }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {% for row in pv.timeline %}
+        <tr>{% for ckey, clabel in pv.timeline_cols %}<td>{{ row[ckey] or '—' }}</td>{% endfor %}</tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-faint" style="font-size: var(--fs-sm);">// non renseignée</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- §4 Synthèse -->
+<div class="ascii-frame pv-doc-block">
+  <div class="frame-title">4 · Synthèse à l'attention du juge</div>
+  <div class="frame-body">
+    <div class="pv-doc-text">{{ pv.synthese or '—' }}</div>
+  </div>
+</div>
+
+{% endblock %}

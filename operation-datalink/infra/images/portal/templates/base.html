@@ -389,6 +389,19 @@
     }
     .prompt-field.error { border-color: var(--p-bright); animation: term-shake .3s; }
 
+    /* zone de texte libre (PV) — même habillage que le champ commande */
+    .prompt-area {
+      width: 100%; display: block;
+      padding: .5rem .7rem; resize: vertical; min-height: 4.5rem;
+      background: var(--bg-inset);
+      border: 1px solid var(--frame-line);
+      color: var(--p-bright); font-family: var(--font-term);
+      font-size: var(--fs-sm); line-height: 1.55; text-shadow: var(--text-glow);
+      transition: border-color var(--t-base);
+    }
+    .prompt-area:focus { outline: none; border-color: var(--p-bright); box-shadow: var(--box-glow); }
+    .prompt-area::placeholder { color: var(--p-faint); }
+
     input[type="file"]::file-selector-button {
       background: transparent; border: none; cursor: pointer;
       color: var(--p-dim); font-family: var(--font-term);
@@ -607,6 +620,9 @@
         <span class="step-sep">·</span>
         <a href="{{ url_for('aide_tcpdump') }}"
            class="step {% if current_step == 'aide_tcpdump' %}active{% endif %}">tcpdump</a>
+        <span class="step-sep">·</span>
+        <a href="{{ url_for('aide_modele_pv') }}"
+           class="step {% if current_step == 'aide_modele_pv' %}active{% endif %}">Modèle PV</a>
       </span>
     </nav>
   </div>
@@ -669,6 +685,38 @@
     });
     sync();
   })();
+</script>
+<script>
+  // ── Autosave des champs de procès-verbal ──────────────────────────────────
+  // POST d'un champ unique vers /api/pv-field. Réutilisé par /preuves (narratif)
+  // et /pv (en-tête, grilles JSON, synthèse).
+  window.savePvField = function (field, value) {
+    return fetch('/api/pv-field', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ field: field, value: value }),
+    });
+  };
+  function flashSaved(field, ok) {
+    var el = document.querySelector('[data-saved-for="' + field + '"]');
+    if (!el) return;
+    el.textContent = ok ? '✓ enregistré' : '✗ non enregistré';
+    el.className = 'pv-saved ' + (ok ? 'text-bright' : 'text-bright term-blink');
+    if (ok) setTimeout(function () { if (el.textContent === '✓ enregistré') el.textContent = ''; }, 2200);
+  }
+  // Champs simples (textarea/input) avec [data-field] : autosave au blur.
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.pv-autosave').forEach(function (el) {
+      var last = el.value;
+      el.addEventListener('blur', function () {
+        if (el.value === last) return;
+        last = el.value;
+        savePvField(el.dataset.field, el.value)
+          .then(function (r) { flashSaved(el.dataset.field, r.ok); })
+          .catch(function () { flashSaved(el.dataset.field, false); });
+      });
+    });
+  });
 </script>
 {% block scripts %}{% endblock %}
 </body>

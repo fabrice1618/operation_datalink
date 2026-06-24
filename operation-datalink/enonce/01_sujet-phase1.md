@@ -2,9 +2,11 @@
 
 **Information n° 2026/DATALINK — Réquisitions du juge d'instruction**
 
-Vous disposez de deux scellés et du modèle de procès-verbal. Travaillez de
-préférence avec **Wireshark** (filtres d'affichage, *Suivre le flux TCP/HTTP*,
-*Exporter des objets*). `tcpdump`, `nmap` et un client web/FTP peuvent compléter.
+Vous disposez de deux scellés. Le procès-verbal se **remplit en ligne** dans le
+portail (écrans « Preuves » puis « Procès-verbal ») ; le `modele-proces-verbal.md`
+sert à **préparer vos relevés** avant la saisie. Travaillez de préférence avec
+**Wireshark** (filtres d'affichage, *Suivre le flux TCP/HTTP*, *Exporter des
+objets*). `tcpdump`, `nmap` et un client web/FTP peuvent compléter.
 
 Chaque réquisition décrit la preuve à rapporter et fournit un **indice**
 (protocole, filtre, manœuvre) pour vous aider à la localiser. Le fait seul ne
@@ -193,7 +195,13 @@ Pour les binômes en avance — à mentionner dans le PV, valorisés en badges :
 
 ## Synthèse à fournir au juge
 
-Dans votre procès-verbal :
+Le procès-verbal se remplit **en ligne** : la **localisation** et l'**infraction**
+de chaque preuve se saisissent sous chaque réquisition (écran « Preuves ») ;
+l'**en-tête**, le **schéma des protagonistes**, la **chronologie** et la
+**synthèse** se renseignent sur l'écran « Procès-verbal ». Pensez à le
+**transmettre au juge** une fois complet (bouton « Transmettre au juge »).
+
+Votre procès-verbal doit comporter :
 
 1. pour chaque réquisition, les **faits relevés** — R1 : suspects, transporteur,
    date de chargement, n° de colis ; R2 : nombre de clients, identifiant, mot de

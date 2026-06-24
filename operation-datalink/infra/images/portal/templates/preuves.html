@@ -24,7 +24,7 @@
   {% for phase, label in phases.items() %}
   {% set is_found = phase in found %}
   {% set is_releve = (releve_fields is defined and phase in releve_fields) %}
-  <div class="ascii-frame" id="card-{{ phase }}"{% if is_releve and not is_found %} style="grid-column: 1 / -1;"{% endif %}>
+  <div class="ascii-frame" id="card-{{ phase }}"{% if is_releve %} style="grid-column: 1 / -1;"{% endif %}>
     <div class="frame-title">{{ label }}</div>
     <div class="frame-right">
       {% if is_found %}
@@ -35,6 +35,8 @@
     </div>
     <div class="frame-body" id="body-{{ phase }}">
       <div class="text-faint" style="font-size: var(--fs-xs); margin-bottom: .5rem;">// scellé {{ phase }}</div>
+      {# Saisie / validation des faits — réécrite à la résolution (le narratif PV reste). #}
+      <div id="facts-{{ phase }}">
       {% if is_found %}
       <div class="text-bright" style="font-size: var(--fs-sm);">
         ✓ Preuve versée au dossier.
@@ -85,6 +87,28 @@
       </div>
       <div id="feedback-{{ phase }}" style="min-height: 1.4rem; font-size: var(--fs-xs); margin-top: .35rem;"></div>
       {% endif %}
+      </div>{# /facts #}
+
+      {# Narratif consigné au procès-verbal — indépendant de la validation. #}
+      {% if is_releve and pv_narrative is defined %}
+      <div class="pv-narrative" id="narrative-{{ phase }}">
+        <div class="pv-narrative-head">▸ procès-verbal — à consigner pour le juge</div>
+        <div class="pv-narrative-grid">
+          {% for nkey, nlabel, nhint in pv_narrative %}
+          {% set fkey = phase ~ '_' ~ nkey %}
+          <div class="pv-narrative-field">
+            <div class="releve-label">
+              <span class="text-bright">{{ nlabel }}</span>
+              <span class="pv-saved" data-saved-for="{{ fkey }}"></span>
+            </div>
+            <textarea class="prompt-area pv-autosave" data-field="{{ fkey }}" rows="2"
+                      autocomplete="off" spellcheck="false"
+                      placeholder="{{ nhint }}">{{ pv_fields.get(fkey, '') }}</textarea>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
     </div>
   </div>
   {% endfor %}
@@ -105,6 +129,21 @@
   .releve-label {
     display: flex; align-items: center; justify-content: space-between; gap: 1ch;
   }
+  /* Narratif consigné au PV, sous les faits de chaque preuve */
+  .pv-narrative {
+    margin-top: var(--space-5); padding-top: var(--space-4);
+    border-top: 1px dashed var(--p-ghost);
+  }
+  .pv-narrative-head {
+    font-size: var(--fs-xs); letter-spacing: .1em; text-transform: uppercase;
+    color: var(--p-dim); margin-bottom: var(--space-4);
+  }
+  .pv-narrative-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-5) var(--space-4);
+  }
+  @media (max-width: 640px) { .pv-narrative-grid { grid-template-columns: 1fr; } }
+  .pv-saved { font-size: var(--fs-2xs); letter-spacing: .04em; }
 </style>
 {% endblock %}
 
@@ -154,7 +193,7 @@ async function submitFlag(phase) {
 
     if (data.correct) {
       const badge = document.getElementById('badge-' + phase);
-      const body  = document.getElementById('body-'  + phase);
+      const facts = document.getElementById('facts-' + phase);
 
       badge.className   = 'badge badge-success';
       badge.textContent = 'OK';
@@ -169,9 +208,8 @@ async function submitFlag(phase) {
         if (i >= msg.length) {
           clearInterval(t);
           setTimeout(() => {
-            const note = body.querySelector('.text-faint');
-            body.innerHTML =
-              (note ? note.outerHTML : '') +
+            // On ne réécrit que la zone des faits : le narratif PV est préservé.
+            facts.innerHTML =
               '<div class="text-bright" style="font-size: var(--fs-sm);">' +
               '✓ Preuve versée au dossier.</div>';
           }, 550);
@@ -230,16 +268,11 @@ function flashReleveError(key) {
 
 function markReleveSolved(phase) {
   const badge = document.getElementById('badge-' + phase);
-  const body  = document.getElementById('body-'  + phase);
   if (badge) { badge.className = 'badge badge-success'; badge.textContent = 'OK'; }
-  const card = document.getElementById('card-' + phase);
-  if (card) card.style.gridColumn = '';
-  if (body) {
-    const note = body.querySelector('.text-faint');
-    body.innerHTML =
-      (note ? note.outerHTML : '') +
-      '<div class="text-bright" style="font-size: var(--fs-sm);">✓ Preuve versée au dossier.</div>';
-  }
+  // Réécrit uniquement la zone des faits ; le narratif PV (#narrative) demeure.
+  const facts = document.getElementById('facts-' + phase);
+  if (facts) facts.innerHTML =
+    '<div class="text-bright" style="font-size: var(--fs-sm);">✓ Preuve versée au dossier.</div>';
   renderBar(parseInt(document.getElementById('counter').textContent || '0') + 1);
 }
 

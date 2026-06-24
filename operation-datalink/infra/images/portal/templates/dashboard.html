@@ -18,8 +18,8 @@
     <div class="label">Flags validés</div>
   </div>
   <div class="stat-card">
-    <div class="value">{{ '%02d' | format(pvs_by_group | length) }}</div>
-    <div class="label">PV déposés</div>
+    <div class="value">{{ '%02d' | format(pv_submitted | length) }}</div>
+    <div class="label">PV transmis</div>
   </div>
 </div>
 
@@ -42,7 +42,7 @@
       </thead>
       <tbody>
         {% for row in board %}
-        {% set gpvs  = pvs_by_group.get(row.id, []) %}
+        {% set psub  = pv_submitted.get(row.id) %}
         {% set total = phases | length %}
         <tr>
           <td class="tc text-bright">{{ row.rank }}</td>
@@ -73,11 +73,10 @@
             {{ row.last[11:19] if row.last else '—' }}
           </td>
           <td class="tc">
-            {% if gpvs %}
-            <span class="badge badge-info"
-                  title="{{ gpvs | map(attribute='filename') | join(', ') }}">
-              [{{ gpvs | length }}]
-            </span>
+            {% if psub %}
+            <a class="badge badge-info" style="text-decoration: none;"
+               href="{{ url_for('dashboard_pv', group_id=row.id, token=token) }}"
+               target="_blank" rel="noopener" title="Transmis le {{ psub }}">Consulter</a>
             {% else %}
             <span class="text-faint">··</span>
             {% endif %}
@@ -93,26 +92,22 @@
   classement par score puis preuve la plus précoce.
 </p>
 
-{% if pvs_by_group %}
+{% if pv_submitted %}
 <div class="ascii-frame">
-  <div class="frame-title">Procès-verbaux déposés</div>
+  <div class="frame-title">Procès-verbaux transmis</div>
   <div class="frame-body">
     {% for g in groups %}
-    {% set gpvs = pvs_by_group.get(g.id, []) %}
-    {% if gpvs %}
-    <div style="margin-bottom: 1.1rem;">
-      <div class="text-bright" style="font-size: var(--fs-sm); letter-spacing: .08em; margin-bottom: .3rem; text-transform: uppercase;">
-        ▌ {{ g.name }}
+    {% set psub = pv_submitted.get(g.id) %}
+    {% if psub %}
+    <div class="file-item">
+      <span class="file-icon">▣</span>
+      <div style="flex: 1;">
+        <span class="text-bright" style="font-size: var(--fs-sm); letter-spacing: .06em;">{{ g.name }}</span>
+        <span class="text-faint" style="font-size: var(--fs-2xs); margin-left: 1ch;">// transmis le {{ psub }}</span>
       </div>
-      {% for p in gpvs %}
-      <div class="file-item" style="padding-left: 2ch;">
-        <span class="file-icon">▣</span>
-        <div style="flex: 1;">
-          <span style="font-size: var(--fs-sm);">{{ p.filename }}</span>
-          <span class="text-faint" style="font-size: var(--fs-2xs); margin-left: 1ch;">// {{ p.submitted_at }}</span>
-        </div>
-      </div>
-      {% endfor %}
+      <a class="badge badge-info" style="text-decoration: none;"
+         href="{{ url_for('dashboard_pv', group_id=g.id, token=token) }}"
+         target="_blank" rel="noopener">Consulter</a>
     </div>
     {% endif %}
     {% endfor %}
