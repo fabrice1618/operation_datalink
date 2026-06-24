@@ -26,32 +26,26 @@ Renseignez le tableau à partir des trames ARP, des requêtes DNS et des flux.
 ## 2. Preuves collectées
 
 Une fiche par preuve. Le jeton seul ne suffit pas : la **localisation** fait foi.
-Indiquez pour chacune la **voie suivie** (experte = résolue sans lire l'indice →
-bonus ; guidée = avec indice).
 
 ### Preuve P1 — Coordination du trafic *(scellé 01)*
-- Voie suivie (experte / guidée) :
 - Jeton `DATALINK{ }` :
 - Localisation (n° trame, protocole, IP src → dst, port, horodatage) :
 - Ce que la preuve démontre :
 - Infraction caractérisée :
 
 ### Preuve P2 — Exfiltration de la base clients *(scellé 02)*
-- Voie suivie (experte / guidée) :
 - Jeton `DATALINK{ }` :
 - Localisation :
 - Nom du fichier / nombre de victimes estimé :
 - Infraction caractérisée :
 
 ### Preuve P3 — Menaces / chantage *(scellé 01)*
-- Voie suivie (experte / guidée) :
 - Jeton `DATALINK{ }` :
 - Localisation :
 - Expéditeur, destinataire, montant exigé :
 - Infraction caractérisée :
 
 ### Preuve P4 — Intrusion dans le serveur *(scellé 01)*
-- Voie suivie (experte / guidée) :
 - Jeton `DATALINK{ }` :
 - IP de l'intrus / nombre de ports scannés :
 - Identifiant et mot de passe interceptés :
@@ -59,7 +53,6 @@ bonus ; guidée = avec indice).
 - Infraction caractérisée :
 
 ### Preuve P5 — Canal caché DNS *(scellé 02)*
-- Voie suivie (experte / guidée) :
 - Jeton `DATALINK{ }` :
 - Localisation :
 - Explication du mécanisme :
