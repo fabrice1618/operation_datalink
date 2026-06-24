@@ -6,7 +6,6 @@ Timeline :
   - envoie un e-mail de menace/chantage via SMTP (port 25), avec une piece
     jointe encodee en base64
 """
-import codecs
 import smtplib
 import time
 import urllib.parse
@@ -15,17 +14,15 @@ from email.message import EmailMessage
 
 SRV = "10.13.37.50"
 
-# Preuve P1 : code de rendez-vous glisse dans la conversation. Il n'est jamais
-# donne en clair : il est decoupe en deux moities et chacune est chiffree en
-# ROT13 (decalage de 13 lettres). Reconstitution attendue : recoller le flux
-# HTTP des deux messages, puis appliquer ROT13.
-RDV_CODE = "DATALINK{RDV_QUAI17_14MAI_0300}"
+# Preuve P1 : la coordination de la livraison se lit directement dans le chat
+# HTTP en clair. L'enquete ne cherche plus un jeton mais quatre faits a relever
+# en reconstituant la conversation (et en ecartant le bruit du poste IT) :
+#   - les noms des deux suspects (Sofia Lenoir / Marc Vidal)
+#   - le transporteur (Transports Caron)
+#   - la date de chargement (14/05/2026, dans la nuit du 14 mai a 03h00)
+#   - le numero de colis (NX-4417)
 # Preuve P3 : reference de la rancon, dans la piece jointe
 RANSOM_FLAG = "DATALINK{RANCON_50000E_BTC}"
-
-
-def rot13(texte):
-    return codecs.encode(texte, "rot13")
 
 
 def chat(auteur, texte):
@@ -44,17 +41,16 @@ def main():
     t0 = time.time()
 
     # --- Coordination du trafic via le chat (P1) ---
-    mid = len(RDV_CODE) // 2
     sleep_until(t0, 8)
-    chat("Sofia", "Marc, la marchandise arrive cette nuit. Tu confirmes le point de chute ?")
+    chat("Sofia", "Ici Sofia Lenoir. Marc, tu es en ligne ? On finalise la livraison de cette nuit.")
     sleep_until(t0, 14)
-    chat("Sofia", "Comme d'habitude : depot sur darkdrop. Je passe le code en deux fois, decale facon ROT13.")
-    sleep_until(t0, 18)
-    chat("Sofia", "Code (1/2, ROT13) : " + rot13(RDV_CODE[:mid]))
+    chat("Sofia", "Transporteur confirme : Transports Caron, comme la derniere fois.")
     sleep_until(t0, 22)
-    chat("Sofia", "Code (2/2, ROT13) : " + rot13(RDV_CODE[mid:]))
-    sleep_until(t0, 28)
-    chat("Sofia", "Ne mets RIEN par ecrit ailleurs. On efface ce canal demain.")
+    chat("Sofia", "On garde la nuit du 14 mai a 03h00. Date de chargement : 14/05/2026.")
+    sleep_until(t0, 26)
+    chat("Sofia", "La marchandise part sous le colis NX-4417. Ne note ce numero nulle part ailleurs.")
+    sleep_until(t0, 30)
+    chat("Sofia", "On efface ce canal demain. Rien par ecrit en dehors d'ici.")
 
     # --- Menace / chantage par e-mail (P3) ---
     # Usurpation (defi bonus) : l'en-tete "From" est falsifie pour faire accuser

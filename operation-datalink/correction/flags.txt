@@ -4,7 +4,12 @@
 # identiques) ; seule leur REPRÉSENTATION dans les scellés change — cf. le
 # camouflage entre crochets, qui impose de reconstituer le flux puis de décoder.
 
-P1  Coordination (HTTP)        DATALINK{RDV_QUAI17_14MAI_0300}        [2 moitiés + ROT13]
+# P1 n'est plus un jeton : relevé d'enquête (4 faits lus dans le chat HTTP).
+#   Suspects     : Sofia Lenoir + Marc Vidal  (ordre indifférent)
+#   Transporteur : Transports Caron           (alias accepté : Caron)
+#   Date charg.  : 14/05/2026                  (alias : 14/5/2026, 14 mai 2026)
+#   N° de colis  : NX-4417                     (alias : nx4417)
+#   Leurre à écarter : "IT-Support" -> Transports Brel / 12/05 / colis RH-0090
 P2  Exfiltration base (FTP)    DATALINK{4213_CLIENTS_RGPD_EXFILTRES}  [écrit à l'envers]
 P3  Menaces (SMTP/base64)      DATALINK{RANCON_50000E_BTC}            [pièce jointe base64]
 P4  Intrusion (scan + telnet)  DATALINK{STAD_ROOT_NORDEXPORT}         [hexadécimal]

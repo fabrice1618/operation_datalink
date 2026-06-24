@@ -9,6 +9,8 @@ préférence avec **Wireshark** (filtres d'affichage, *Suivre le flux TCP/HTTP*,
 Chaque réquisition décrit la preuve à rapporter et fournit un **indice**
 (protocole, filtre, manœuvre) pour vous aider à la localiser. Le jeton seul ne
 suffit pas : sa **localisation** (trame, protocole, IP, port) fait toujours foi.
+La **réquisition 1** fait exception : elle ne livre pas de jeton mais un **relevé
+de faits** à saisir dans le formulaire d'enquête du portail.
 
 > ⚠️ **Le réseau n'est pas « propre ».** Les captures contiennent du **trafic
 > parasite** légitime (résolutions DNS anodines, consultations, mail interne) :
@@ -17,8 +19,10 @@ suffit pas : sa **localisation** (trame, protocole, IP, port) fait toujours foi.
 > avec une infraction est recevable.
 >
 > ⚠️ **Aucun vrai jeton n'apparaît en clair.** Un simple « rechercher DATALINK »
-> ne suffit plus : chaque preuve demande de **reconstituer le flux** du protocole
-> *puis* de **décoder** — suivez l'indice de chaque réquisition.
+> ne suffit plus : pour les réquisitions 2 à 5, chaque preuve demande de
+> **reconstituer le flux** du protocole *puis* de **décoder** — suivez l'indice
+> de chaque réquisition. La réquisition 1 ne cache pas de jeton : elle demande
+> de **relever des faits** dans la conversation.
 
 ---
 
@@ -27,16 +31,27 @@ suffit pas : sa **localisation** (trame, protocole, IP, port) fait toujours foi.
 Deux personnes de la société échangent, via la **messagerie web interne**
 (trafic HTTP en clair), au sujet d'une « livraison » qui doit avoir lieu de nuit.
 
-- Reconstituez la conversation. Qui parle à qui (adresses IP) ?
-- Un **code de rendez-vous** est transmis au transporteur. Retrouvez-le.
+Cette réquisition ne cache **pas de jeton** : **reconstituez la conversation**
+puis **extrayez les faits**. Vous les saisirez dans le **formulaire d'enquête**
+du portail (réquisition 1). L'étape n'est validée que lorsque les **quatre**
+éléments sont exacts ; seuls les éléments corrects sont verrouillés.
 
-> *Indice :* les messages circulent en HTTP (port 80). Le code n'est **pas donné
-> en clair** : il est **scindé en deux messages**, et chaque moitié est
-> **chiffrée en ROT13** (décalage de 13 lettres). Reconstituez le flux, recollez
-> les deux moitiés puis appliquez ROT13. (Le corps du POST est aussi URL-encodé,
-> `%7B` = `{`… ; Wireshark le restitue.)
+Relevez et saisissez :
 
-**À rapporter :** le jeton `DATALINK{...}` (le code de rendez-vous) + qualification.
+1. les **noms des deux suspects** qui coordonnent la livraison (prénom + nom) ;
+2. le **transporteur** chargé d'acheminer la marchandise ;
+3. la **date de chargement** (format `JJ/MM/AAAA`) ;
+4. le **numéro de colis**.
+
+> *Indice :* les messages circulent en HTTP (port 80). Dans Wireshark, filtre
+> `http` → *Suivre → Flux HTTP* sur les requêtes `POST /post` ; le corps est
+> URL-encodé (`%7B` = `{`…), restitué automatiquement. **Méfiez-vous du bruit :**
+> un message anodin signé `IT-Support` évoque une *autre* tournée (autre
+> transporteur, autre date, autre colis) — c'est un leurre. Seuls les faits
+> échangés **entre les deux suspects** (`10.13.37.20` ↔ `10.13.37.10`) comptent.
+
+**À rapporter au PV :** les quatre éléments + la qualification (entente en vue
+d'un trafic illicite) + leur localisation (trames, IP src/dst, port, horodatage).
 
 ---
 
@@ -137,7 +152,9 @@ Pour les binômes en avance — à mentionner dans le PV, valorisés en badges :
 
 Dans votre procès-verbal :
 
-1. les **5 jetons** `DATALINK{...}` avec, pour chacun, sa localisation (trame,
+1. pour la **réquisition 1**, les **quatre faits** relevés (suspects,
+   transporteur, date de chargement, n° de colis) ; pour les **réquisitions 2
+   à 5**, le **jeton** `DATALINK{...}` — chacun avec sa localisation (trame,
    protocole, IP src/dst, port, horodatage) ;
 2. le **schéma des protagonistes** (qui est qui : IP, MAC, rôle) — utilisez les
    trames **ARP** et **DNS** pour relier adresses et identités ;

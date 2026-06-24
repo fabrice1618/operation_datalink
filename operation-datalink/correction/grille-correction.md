@@ -1,23 +1,31 @@
 # Opération Datalink — grille de correction (CONFIDENTIEL enseignant)
 
-Barème indicatif sur **20 points** : 10 pts pour les jetons (2 pts/preuve),
-6 pts pour la qualité du PV (localisation, identification des protagonistes,
-timeline, qualification juridique), 4 pts pour la phase 2.
+Barème indicatif sur **20 points** : 10 pts pour les preuves (2 pts/réquisition —
+R1 = relevé des 4 faits, R2 à R5 = jeton), 6 pts pour la qualité du PV
+(localisation, identification des protagonistes, timeline, qualification
+juridique), 4 pts pour la phase 2.
 
-> Le jeton prouve que l'étudiant a *trouvé* la pièce ; les points « PV » valident
-> qu'il *sait l'exploiter* (localisation + raisonnement). Ne validez le flag que
-> s'il est correctement **localisé**.
+> La preuve (jeton ou relevé) prouve que l'étudiant a *trouvé* la pièce ; les
+> points « PV » valident qu'il *sait l'exploiter* (localisation + raisonnement).
+> Ne validez une preuve que si elle est correctement **localisée**.
 
 ---
 
 ## Preuve P1 — Coordination du trafic *(scellé 01)*
-- **Flag :** `DATALINK{RDV_QUAI17_14MAI_0300}`
-- **Piège pédagogique :** le code n'apparaît pas en clair. Il est **scindé en
-  deux messages** et chiffré en **ROT13** (le corps du POST est de plus
-  URL-encodé). Le binôme doit recoller les deux moitiés puis appliquer ROT13.
-  N'acceptez que le jeton final décodé.
-- **Localisation attendue :** flux HTTP (port 80), requête `POST /post` de
-  `10.13.37.20` (Sofia) → `10.13.37.50`.
+- **Relevé d'enquête (4 faits, plus de jeton) :**
+  - **Suspects :** Sofia Lenoir (`10.13.37.20`) et Marc Vidal (`10.13.37.10`).
+  - **Transporteur :** Transports Caron (alias « Caron » accepté).
+  - **Date de chargement :** 14/05/2026 (nuit du 14 mai, 03h00 ; alias
+    « 14/5/2026 », « 14 mai 2026 »).
+  - **N° de colis :** NX-4417 (alias « nx4417 »).
+- **Saisie portail :** formulaire d'enquête de la réquisition 1. L'étape (P1)
+  n'est validée que si les **4 champs** sont exacts ; seuls les champs corrects
+  sont verrouillés (saisie insensible casse/accents/ordre).
+- **Piège pédagogique :** un message anodin signé **IT-Support** évoque une
+  *autre* tournée (Transports **Brel**, le **12/05**, colis **RH-0090**) : c'est
+  un **leurre**. N'acceptez que les faits échangés entre les deux suspects.
+- **Localisation attendue :** flux HTTP (port 80), requêtes `POST /post` entre
+  `10.13.37.20` (Sofia) et `10.13.37.10` (Marc) → serveur `10.13.37.50`.
 - **Qualification :** trafic de stupéfiants / coordination (art. 222-37 CP) ;
   élément d'association de malfaiteurs (art. 450-1 CP).
 
@@ -104,6 +112,8 @@ Cf. `flags.txt` pour la correspondance. Le poste `10.13.37.40` (`pc-it`) est un
 - Flag rendu sans localisation (n° de trame / IP / port) → jeton non recevable.
 - **Leurre `DATALINK{ARCHIVE_SAUVEGARDE_2025}` rendu comme une vraie preuve.**
 - Confusion canal de contrôle / canal de données en FTP.
-- Décodage incomplet : ROT13 + recollage (P1), lecture à l'envers (P2), base64
-  (P3, P5), hexadécimal (P4).
+- R1 : faits du **leurre IT-Support** (Transports Brel / 12/05 / RH-0090) rendus
+  à la place de ceux des suspects.
+- Décodage incomplet : lecture à l'envers (P2), base64 (P3, P5),
+  hexadécimal (P4).
 - Confusion entre l'IP de l'intrus (.66) et celle du serveur (.50).

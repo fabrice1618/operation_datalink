@@ -1,7 +1,9 @@
 import os
+import re
 import hashlib
 import sqlite3
 import pathlib
+import unicodedata
 import markdown
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
@@ -75,6 +77,37 @@ def _load_flag_hash(phase: str) -> str:
 
 # Empreintes SHA-256 des flags attendus (jamais le flag en clair).
 FLAG_HASHES = {p: _load_flag_hash(p) for p in ("P0", "P1", "P2", "P3", "P4", "P5", "P6")}
+
+# Réquisition 1 — depuis cette version, R1 n'est plus une chasse au jeton mais un
+# relevé d'enquête : on saisit quatre faits lus dans le chat HTTP (scellé 01).
+# Chaque champ a sa propre empreinte ; l'étape n'est validée que lorsque les
+# quatre champs sont corrects, et seuls les champs corrects sont verrouillés.
+R1_FIELDS = [
+    ("suspects",     "Noms des suspects",
+     "Les deux personnes qui coordonnent la livraison — prénom + nom, séparés par une virgule."),
+    ("transporteur", "Transporteur",
+     "La société chargée d'acheminer la marchandise."),
+    ("date",         "Date de chargement",
+     "Au format JJ/MM/AAAA."),
+    ("colis",        "Numéro de colis",
+     "La référence du colis, telle qu'écrite dans le chat."),
+]
+R1_FIELD_KEYS = [k for k, _, _ in R1_FIELDS]
+
+
+def _load_r1_hashes(field: str) -> set:
+    """Empreintes SHA-256 acceptées pour un champ de R1.
+
+    On admet plusieurs valeurs par champ (variantes de saisie : 14/05/2026 ou
+    « 14 mai 2026 »…), séparées par des espaces/virgules dans la variable
+    d'environnement FLAG_P1_<CHAMP>_SHA256. Comme pour les jetons, le portail
+    ne connaît jamais la réponse en clair, seulement son empreinte normalisée.
+    """
+    raw = os.environ.get(f"FLAG_P1_{field.upper()}_SHA256", "")
+    return {h.strip().lower() for h in re.split(r"[\s,]+", raw) if h.strip()}
+
+
+R1_FIELD_HASHES = {k: _load_r1_hashes(k) for k in R1_FIELD_KEYS}
 
 PHASE_LABELS = {
     "P0": "Réquisition 0 — Prise en main (entraînement)",
@@ -160,6 +193,17 @@ def init_db():
                 submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (group_id) REFERENCES groups(id)
             );
+            -- Champs de R1 correctement versés (présence = champ validé).
+            -- L'étape P1 n'entre dans flag_submissions que lorsque les quatre
+            -- champs sont présents pour l'équipe.
+            CREATE TABLE IF NOT EXISTS r1_fields (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                group_id INTEGER NOT NULL,
+                field TEXT NOT NULL,
+                submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(group_id, field),
+                FOREIGN KEY (group_id) REFERENCES groups(id)
+            );
         """)
 
 
@@ -185,6 +229,42 @@ def validate_flag(flag_text: str, phase: str) -> bool:
     return bool(expected) and sha256_hex(flag_text.strip()) == expected
 
 
+def _normalize(text: str) -> str:
+    """Met une réponse libre sous forme canonique pour la comparaison.
+
+    Insensible à la casse, aux accents et aux espaces multiples ; retire la
+    ponctuation de bord. Les empreintes attendues sont calculées sur cette même
+    forme (cf. gen-r1-hashes.py) : « Transports Caron », « transports  caron » et
+    « TRANSPORTS CARON. » sont donc équivalents.
+    """
+    s = unicodedata.normalize("NFKD", text)
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    s = s.lower().strip()
+    s = re.sub(r"\s+", " ", s)
+    return s.strip(" \t\r\n.,;:!?\"'`")
+
+
+def _normalize_suspects(text: str) -> str:
+    """Forme canonique d'une liste de noms, indépendante de l'ordre.
+
+    Découpe sur les séparateurs usuels (virgule, « et », « & »…), normalise
+    chaque nom, trie puis recolle : « Sofia Lenoir, Marc Vidal » et
+    « Marc Vidal et Sofia Lenoir » donnent la même empreinte.
+    """
+    parts = re.split(r"[,;/&\n]+|\bet\b", text, flags=re.IGNORECASE)
+    names = sorted(n for n in (_normalize(p) for p in parts) if n)
+    return "|".join(names)
+
+
+def validate_r1_field(field: str, value: str) -> bool:
+    """Vrai si la réponse d'un champ de R1 correspond à une empreinte attendue."""
+    expected = R1_FIELD_HASHES.get(field)
+    if not expected:
+        return False
+    canon = _normalize_suspects(value) if field == "suspects" else _normalize(value)
+    return bool(canon) and sha256_hex(canon) in expected
+
+
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -198,6 +278,15 @@ def render_md(slug: str) -> str:
         path.read_text(encoding="utf-8"),
         extensions=["tables", "fenced_code", "nl2br"],
     )
+
+
+def r1_solved_fields(group_id: int) -> set:
+    """Ensemble des champs de R1 déjà validés par l'équipe."""
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT field FROM r1_fields WHERE group_id = ?", (group_id,)
+        ).fetchall()
+    return {r["field"] for r in rows}
 
 
 def found_phases(group_name: str) -> set:
@@ -426,12 +515,14 @@ def preuves():
     if redir:
         return redir
     group = session["group_name"]
+    group_id = get_or_create_group(group)
     phases = {p: PHASE_LABELS[p] for p in PHASE_GROUPS[1]}
     found = found_phases(group) & set(phases)
     return render_template(
         "preuves.html",
         title="Saisie des preuves — Phase 1",
         phases=phases, found=found, group=group, phase_num=1, cells=24,
+        r1_fields=R1_FIELDS, r1_done=r1_solved_fields(group_id),
     )
 
 
@@ -466,6 +557,68 @@ def preuves2():
     )
 
 
+@app.route("/api/r1", methods=["POST"])
+def api_r1():
+    """Validation des quatre faits de la réquisition 1 (relevé d'enquête).
+
+    Chaque champ est vérifié indépendamment : seuls les champs corrects sont
+    enregistrés (donc verrouillés). L'étape P1 n'est versée au dossier (et au
+    classement) que lorsque les quatre champs sont validés.
+    """
+    if not session.get("group_name"):
+        return jsonify({"error": "Groupe non défini"}), 401
+    data = request.get_json(force=True, silent=True) or {}
+    fields = data.get("fields")
+    if not isinstance(fields, dict):
+        return jsonify({"error": "Requête invalide"}), 400
+
+    group_id = get_or_create_group(session["group_name"])
+    results = {}
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT field FROM r1_fields WHERE group_id = ?", (group_id,)
+        ).fetchall()
+        solved = {r["field"] for r in rows}
+
+        for key in R1_FIELD_KEYS:
+            if key in solved:
+                results[key] = True            # déjà acquis : verrouillé
+                continue
+            value = (fields.get(key) or "").strip()
+            if not value:
+                results[key] = None            # non soumis cette fois
+                continue
+            ok = validate_r1_field(key, value)
+            results[key] = ok
+            if ok:
+                conn.execute(
+                    "INSERT OR IGNORE INTO r1_fields (group_id, field) VALUES (?,?)",
+                    (group_id, key),
+                )
+                solved.add(key)
+
+        all_correct = set(R1_FIELD_KEYS) <= solved
+        if all_correct:
+            # On verse l'étape P1 au dossier (et au classement) une seule fois.
+            done = conn.execute(
+                "SELECT id FROM flag_submissions WHERE group_id = ? AND correct = 1 AND phase = 'P1'",
+                (group_id,),
+            ).fetchone()
+            if not done:
+                conn.execute(
+                    "INSERT INTO flag_submissions (group_id, phase, flag_text, correct) VALUES (?,?,?,?)",
+                    (group_id, "P1", sha256_hex("R1_FIELDS_OK"), 1),
+                )
+
+    return jsonify({
+        "results": results,
+        "solved": sorted(solved),
+        "all_correct": all_correct,
+        "phase": "P1",
+        "label": PHASE_LABELS["P1"],
+    })
+
+
 @app.route("/api/flag", methods=["POST"])
 def api_flag():
     if not session.get("group_name"):
@@ -479,6 +632,9 @@ def api_flag():
     # peut pas vérifier qu'elle est versée dans la bonne case.
     if phase not in PHASE_LABELS:
         return jsonify({"error": "Réquisition inconnue"}), 400
+    # La réquisition 1 n'est plus une chasse au jeton : elle passe par /api/r1.
+    if phase == "P1":
+        return jsonify({"error": "La réquisition 1 se valide via son formulaire d'enquête."}), 400
 
     group_name = session["group_name"]
     group_id = get_or_create_group(group_name)

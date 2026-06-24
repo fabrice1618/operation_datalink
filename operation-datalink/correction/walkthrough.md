@@ -6,8 +6,11 @@ pour vérifier sans Wireshark). Commandes à lancer depuis `scelles/`.
 ## Vue d'ensemble rapide
 
 Depuis cette version, **aucun vrai jeton n'apparaît en clair** dans les scellés :
-chaque preuve impose de reconstituer le flux du protocole *puis* de décoder. La
-recherche naïve ne renvoie donc **que le leurre** (cf. « Bruit de fond & leurre ») :
+les réquisitions 2 à 5 imposent de reconstituer le flux du protocole *puis* de
+décoder. La **réquisition 1** ne livre plus de jeton du tout : c'est un **relevé
+de faits** (suspects, transporteur, date, n° de colis) lus dans le chat HTTP,
+à saisir dans le formulaire d'enquête du portail. La recherche naïve ne renvoie
+donc **que le leurre** (cf. « Bruit de fond & leurre ») :
 
 ```bash
 strings scelle-01_serveur-interne.pcap scelle-02_passerelle.pcap \
@@ -20,7 +23,7 @@ révèle toutes) :
 
 | Preuve | Protocole | Camouflage | Décodage |
 |--------|-----------|------------|----------|
-| P1 | HTTP chat | 2 moitiés + ROT13     | recoller + ROT13 |
+| P1 | HTTP chat | relevé de faits (pas de jeton) | lire la conversation, écarter le leurre |
 | P2 | FTP       | jeton écrit à l'envers | lire à l'envers (`rev`) |
 | P3 | SMTP      | pièce jointe base64    | `base64 -d` |
 | P4 | Telnet    | jeton en hexadécimal   | `xxd -r -p` |
@@ -28,31 +31,34 @@ révèle toutes) :
 
 ---
 
-## P1 — Coordination (HTTP, scellé 01) → `DATALINK{RDV_QUAI17_14MAI_0300}`
+## P1 — Coordination (HTTP, scellé 01) → relevé d'enquête (4 faits)
 
-Le code n'est plus donné en clair : Sofia (`10.13.37.20`) l'envoie en **deux
-moitiés**, chacune **chiffrée en ROT13**. Il faut reconstituer le chat, recoller
-les deux moitiés puis appliquer ROT13.
+Plus de jeton : on **reconstitue la conversation** entre Sofia (`10.13.37.20`) et
+Marc (`10.13.37.10`) et on relève quatre faits, à saisir dans le formulaire
+d'enquête du portail (l'étape n'est validée que si les 4 sont exacts) :
 
-**Wireshark :** filtre `http` → *Suivre → Flux HTTP* sur un `POST /post`. Les deux
-messages utiles (de `10.13.37.20`) :
-- `Code (1/2, ROT13) : QNGNYVAX{EQI_DH`
-- `Code (2/2, ROT13) : NV17_14ZNV_0300}`
+| Champ | Valeur attendue | Alias acceptés |
+|-------|-----------------|----------------|
+| Suspects | **Sofia Lenoir** + **Marc Vidal** | ordre indifférent |
+| Transporteur | **Transports Caron** | « Caron » |
+| Date de chargement | **14/05/2026** | « 14/5/2026 », « 14 mai 2026 » |
+| N° de colis | **NX-4417** | « nx4417 » |
+
+**Wireshark :** filtre `http` → *Suivre → Flux HTTP* sur les `POST /post`.
 
 **tcpdump :**
 ```bash
 tcpdump -A -r scelle-01_serveur-interne.pcap 'tcp port 80' | grep -o 'texte=[^&]*'
 ```
-Recollage + ROT13 :
-```bash
-echo 'QNGNYVAX{EQI_DHNV17_14ZNV_0300}' | tr 'A-Za-z' 'N-ZA-Mn-za-m'
-# => DATALINK{RDV_QUAI17_14MAI_0300}
-```
-Le corps du POST est aussi URL-encodé (`%7B`/`%7D`…) — ce que Wireshark/`tcpdump`
-restituent ; le ROT13 porte sur le texte une fois recollé.
+Les messages utiles proviennent de `10.13.37.20` (Sofia) et `10.13.37.10` (Marc) :
+transporteur « Transports Caron », chargement « nuit du 14 mai à 03h00 /
+14/05/2026 », colis « NX-4417 ». Le corps du POST est URL-encodé (`%7B`/`%7D`…),
+restitué par Wireshark/`tcpdump`.
 
-> ⚠️ Un message du chat signé `IT-Support` contient `DATALINK{ARCHIVE_SAUVEGARDE_2025}`
-> en clair : c'est le **leurre**, pas le code de rendez-vous.
+> ⚠️ **Leurre :** un message signé `IT-Support` évoque une *autre* tournée —
+> **Transports Brel**, le **12/05**, colis **RH-0090**. À écarter : ce ne sont
+> pas les faits des suspects. (Le même poste plante aussi le faux jeton
+> `DATALINK{ARCHIVE_SAUVEGARDE_2025}`, sans rapport avec R1.)
 
 ---
 
