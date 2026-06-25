@@ -8,10 +8,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <script>
-    // Applique la phosphore mémorisée avant le premier rendu (évite le flash)
+    // Applique le thème mémorisé avant le premier rendu (évite le flash)
     (function () {
       var p = localStorage.getItem('datalink-phosphor');
-      if (p === 'amber') document.documentElement.setAttribute('data-phosphor', 'amber');
+      if (p && p !== 'green') document.documentElement.setAttribute('data-phosphor', p);
     })();
   </script>
   <style>
@@ -85,6 +85,21 @@
     [data-phosphor="amber"] {
       --phosphor-rgb: 255, 176, 0;
       --screen-rgb:   6, 4, 1;
+    }
+
+    /* phosphore violet */
+    [data-phosphor="violet"] {
+      --phosphor-rgb: 191, 123, 255;
+      --screen-rgb:   10, 6, 18;
+    }
+
+    /* thème clair — encre sombre sur papier, sans habillage CRT */
+    [data-phosphor="light"] {
+      --phosphor-rgb: 24, 49, 36;     /* encre vert sombre */
+      --screen-rgb:   232, 233, 226;  /* papier */
+      --crt-intensity: 0;             /* coupe glow / scanlines / vignette / scintillement */
+      --bg-inset:  rgba(0, 0, 0, .05);
+      --frame-line: var(--p-dim);
     }
 
     /* ── L'écran CRT ──────────────────────────────────────────── */
@@ -177,7 +192,11 @@
     }
 
     /* ── Barre de titre ───────────────────────────────────────── */
-    .site-header {
+    /* Sélecteur > .site-header : spécificité (0,2,1) pour primer sur la règle
+       générique « body.datalink > * { position: relative; z-index: 1 } » (0,1,1),
+       sinon l'en-tête perd son sticky/z-index et la liste de thème qui déborde
+       sous l'en-tête passe sous .main-content (options non cliquables). */
+    body.datalink > .site-header {
       position: sticky; top: 0; z-index: 100;
       background: rgba(var(--screen-rgb), .92);
       border-bottom: 1px solid var(--frame-line);
@@ -210,22 +229,52 @@
 
     .site-nav { display: flex; align-items: center; gap: 1.6ch; }
 
-    /* sélecteur de phosphore — Thème : vert ou ambre */
+    /* sélecteur de thème — liste déroulante maison (suit le thème en cours) */
     .theme-switch {
-      display: inline-flex; align-items: center; gap: .5ch;
+      display: inline-flex; align-items: center; gap: .6ch;
       font-family: var(--font-term); font-size: var(--fs-xs); letter-spacing: .08em;
     }
     .theme-label { color: var(--p-dim); text-transform: uppercase; }
-    .theme-sep   { color: var(--p-faint); }
-    .theme-opt {
-      background: none; border: none; cursor: pointer;
-      padding: .1rem .5ch; color: var(--p-dim);
-      font-family: var(--font-term); font-size: var(--fs-xs);
-      letter-spacing: .08em; text-transform: uppercase; text-shadow: var(--text-glow);
+    .theme-dd { position: relative; }
+    .theme-dd-btn {
+      display: inline-flex; align-items: center; gap: 1.2ch; cursor: pointer;
+      background: transparent; border: 1px solid var(--frame-line);
+      padding: .12rem .7ch; min-width: 9ch;
+      color: var(--p-bright); font-family: var(--font-term);
+      font-size: var(--fs-xs); letter-spacing: .08em; text-transform: uppercase;
+      text-shadow: var(--text-glow);
+      transition: border-color var(--t-fast), color var(--t-fast);
+    }
+    .theme-dd-btn:hover         { border-color: var(--p-bright); }
+    .theme-dd-btn:focus-visible { outline: none; border-color: var(--p-bright); box-shadow: var(--box-glow); }
+    .theme-dd-current { flex: 1; text-align: left; }
+    .theme-dd-caret {
+      color: var(--p-dim); font-size: var(--fs-2xs);
+      transition: transform var(--t-fast);
+    }
+    .theme-dd[data-open] .theme-dd-caret { transform: rotate(180deg); }
+
+    /* panneau ouvert — fond/écran et cadre du thème courant */
+    .theme-dd-panel {
+      position: absolute; top: calc(100% + 2px); right: 0; z-index: 200;
+      min-width: 100%; margin: 0; padding: .2rem; list-style: none;
+      background: var(--bg-screen); border: 1px solid var(--frame-line);
+      box-shadow: var(--box-glow);
+    }
+    .theme-dd-panel[hidden] { display: none; }
+    .theme-dd-opt {
+      padding: .18rem .8ch; cursor: pointer; white-space: nowrap;
+      color: var(--p-dim); text-transform: uppercase; letter-spacing: .08em;
+      text-shadow: var(--text-glow);
       transition: background var(--t-fast), color var(--t-fast);
     }
-    .theme-opt:hover { color: var(--p-bright); }
-    .theme-opt.active { background: var(--inverse-bg); color: var(--inverse-fg); text-shadow: none; }
+    .theme-dd-opt::before { content: '\25B8'; visibility: hidden; margin-right: .5ch; } /* ▸ */
+    .theme-dd-opt:hover, .theme-dd-opt.focused { color: var(--p-bright); }
+    .theme-dd-opt:hover::before, .theme-dd-opt.focused::before { visibility: visible; }
+    .theme-dd-opt[aria-selected="true"] {
+      background: var(--inverse-bg); color: var(--inverse-fg); text-shadow: none;
+    }
+    .theme-dd-opt[aria-selected="true"]::before { visibility: visible; }
 
     .nav-link {
       display: inline-flex; align-items: center; gap: .5ch;
@@ -575,7 +624,7 @@
     @media (max-width: 768px) {
       .header-inner { padding: 0 1rem; }
       .main-content { padding: 1.5rem 1rem 3rem; }
-      .theme-label, .theme-sep { display: none; }
+      .theme-label { display: none; }
     }
   </style>
   {% block head %}{% endblock %}
@@ -589,11 +638,21 @@
       <span class="name">Opération DATALINK</span>
     </a>
     <nav class="site-nav">
-      <span class="theme-switch" role="group" aria-label="Thème d'affichage">
-        <span class="theme-label">Thème :</span>
-        <button type="button" class="theme-opt" data-theme="green">vert</button>
-        <span class="theme-sep">ou</span>
-        <button type="button" class="theme-opt" data-theme="amber">ambre</button>
+      <span class="theme-switch">
+        <span class="theme-label" id="theme-dd-label">Thème :</span>
+        <span class="theme-dd" data-theme-dd>
+          <button type="button" class="theme-dd-btn" aria-haspopup="listbox"
+                  aria-expanded="false" aria-labelledby="theme-dd-label theme-dd-current">
+            <span class="theme-dd-current" id="theme-dd-current">vert</span>
+            <span class="theme-dd-caret" aria-hidden="true">&#9662;</span>
+          </button>
+          <ul class="theme-dd-panel" role="listbox" aria-label="Choisir le thème d'affichage" tabindex="-1" hidden>
+            <li class="theme-dd-opt" role="option" id="theme-opt-green"  data-value="green"  aria-selected="true">vert</li>
+            <li class="theme-dd-opt" role="option" id="theme-opt-amber"  data-value="amber"  aria-selected="false">ambre</li>
+            <li class="theme-dd-opt" role="option" id="theme-opt-violet" data-value="violet" aria-selected="false">violet</li>
+            <li class="theme-dd-opt" role="option" id="theme-opt-light"  data-value="light"  aria-selected="false">clair</li>
+          </ul>
+        </span>
       </span>
       {% if session.get('group_name') %}
       <a href="{{ url_for('scoreboard') }}"
@@ -661,11 +720,23 @@
 
 <script>
   (function () {
-    var opts = document.querySelectorAll('.theme-opt');
+    var dd = document.querySelector('[data-theme-dd]');
+    if (!dd) return;
+    var btn     = dd.querySelector('.theme-dd-btn');
+    var panel   = dd.querySelector('.theme-dd-panel');
+    var current = dd.querySelector('.theme-dd-current');
+    var opts    = [].slice.call(dd.querySelectorAll('.theme-dd-opt'));
+    var fi      = -1; // index survolé/au clavier
+
+    function curTheme() { return document.documentElement.getAttribute('data-phosphor') || 'green'; }
+    function labelFor(v) {
+      for (var i = 0; i < opts.length; i++) if (opts[i].dataset.value === v) return opts[i].textContent;
+      return v;
+    }
     function apply(theme) {
-      if (theme === 'amber') {
-        document.documentElement.setAttribute('data-phosphor', 'amber');
-        localStorage.setItem('datalink-phosphor', 'amber');
+      if (theme && theme !== 'green') {
+        document.documentElement.setAttribute('data-phosphor', theme);
+        localStorage.setItem('datalink-phosphor', theme);
       } else {
         document.documentElement.removeAttribute('data-phosphor');
         localStorage.removeItem('datalink-phosphor');
@@ -673,17 +744,49 @@
       sync();
     }
     function sync() {
-      var amber = document.documentElement.getAttribute('data-phosphor') === 'amber';
-      var current = amber ? 'amber' : 'green';
-      opts.forEach(function (o) {
-        o.classList.toggle('active', o.getAttribute('data-theme') === current);
-        o.setAttribute('aria-pressed', o.getAttribute('data-theme') === current);
-      });
+      var cur = curTheme();
+      current.textContent = labelFor(cur);
+      opts.forEach(function (o) { o.setAttribute('aria-selected', o.dataset.value === cur); });
     }
-    opts.forEach(function (o) {
-      o.addEventListener('click', function () { apply(o.getAttribute('data-theme')); });
+    function isOpen() { return !panel.hidden; }
+    function focusOpt(i) {
+      opts.forEach(function (o) { o.classList.remove('focused'); });
+      fi = (i + opts.length) % opts.length;
+      opts[fi].classList.add('focused');
+      panel.setAttribute('aria-activedescendant', opts[fi].id);
+    }
+    function open() {
+      panel.hidden = false; dd.setAttribute('data-open', '');
+      btn.setAttribute('aria-expanded', 'true');
+      var i = opts.findIndex ? opts.findIndex(function (o) { return o.dataset.value === curTheme(); }) : 0;
+      focusOpt(i < 0 ? 0 : i);
+    }
+    function close() {
+      panel.hidden = true; dd.removeAttribute('data-open');
+      btn.setAttribute('aria-expanded', 'false');
+      opts.forEach(function (o) { o.classList.remove('focused'); });
+      fi = -1;
+    }
+    function choose(o) { apply(o.dataset.value); close(); btn.focus(); }
+
+    btn.addEventListener('click', function () { isOpen() ? close() : open(); });
+    btn.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!isOpen()) open(); }
     });
-    sync();
+    opts.forEach(function (o, i) {
+      o.addEventListener('click', function () { choose(o); });
+      o.addEventListener('mousemove', function () { focusOpt(i); });
+    });
+    dd.addEventListener('keydown', function (e) {
+      if (!isOpen()) return;
+      if (e.key === 'ArrowDown')      { e.preventDefault(); focusOpt(fi + 1); }
+      else if (e.key === 'ArrowUp')   { e.preventDefault(); focusOpt(fi - 1); }
+      else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (fi >= 0) choose(opts[fi]); }
+      else if (e.key === 'Escape')    { e.preventDefault(); close(); btn.focus(); }
+    });
+    document.addEventListener('click', function (e) { if (!dd.contains(e.target)) close(); });
+
+    sync(); // aligne libellé + sélection sur le thème déjà appliqué (anti-flash)
   })();
 </script>
 <script>
